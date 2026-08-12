@@ -212,6 +212,8 @@ class SubtitleGeneratorApp(QMainWindow):
         self.language_combo.setCurrentText("English")
         language_layout.addWidget(language_label)
         language_layout.addWidget(self.language_combo)
+        settings_layout.addLayout(language_layout)
+
         # Ollama Model Dropdown
         ollama_layout = QHBoxLayout()
         ollama_label = QLabel("Ollama Model:")
