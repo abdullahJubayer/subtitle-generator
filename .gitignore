@@ -1,0 +1,15 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Audio/Video temporary processing output
+*.mp4
+*.mp3
+*.wav
+*.aac
+*.srt
+
+# System / OS
+.DS_Store
