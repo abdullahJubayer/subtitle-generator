@@ -1,7 +1,10 @@
 """Audio extractor module using FFmpeg subprocess."""
 
+import logging
 import os
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 
 def extract_audio(video_path: str, audio_path: str) -> str:
@@ -15,8 +18,13 @@ def extract_audio(video_path: str, audio_path: str) -> str:
         Absolute path to the extracted audio file.
 
     Raises:
+        FileNotFoundError: If input video file does not exist.
         RuntimeError: If FFmpeg process fails or raises an error.
     """
+    if not os.path.exists(video_path):
+        raise FileNotFoundError(f"Input video file not found: {video_path}")
+
+    logger.info("Extracting audio from '%s' to '%s'", video_path, audio_path)
     cmd = ["ffmpeg", "-i", video_path, "-q:a", "0", "-map", "a", audio_path, "-y"]
     try:
         subprocess.run(

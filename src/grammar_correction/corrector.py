@@ -1,24 +1,15 @@
 import json
 import logging
-from pydantic import BaseModel
 import ollama
+from src.schemas import SegmentDict, SubtitleResponse, SubtitleSegment
 
 logger = logging.getLogger(__name__)
 
 
-class SubtitleSegment(BaseModel):
-    id: int
-    text: str
-
-
-class SubtitleResponse(BaseModel):
-    segments: list[SubtitleSegment]
-
-
 def correct_grammar(
-    segments: list[dict[str, float | int | str]],
+    segments: list[SegmentDict],
     model_name: str = "llama3.1",
-) -> list[dict[str, float | int | str]]:
+) -> list[SegmentDict]:
     """Correct the grammar of subtitle text segments using Ollama LLM.
 
     Args:

@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from src.schemas import SegmentDict
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def format_timestamp(seconds: float) -> str:
 
 
 def generate_srt(
-    segments: list[dict[str, float | int | str]], output_path: str
+    segments: list[SegmentDict], output_path: str
 ) -> str:
     """Generate an SRT file from timestamped subtitle segments.
 
@@ -53,5 +54,4 @@ def generate_srt(
         f.write(full_text)
 
     logger.info(f"SRT file successfully written to {out_file.resolve()}")
-    print(f"SRT file generated successfully at: {out_file.resolve()}")
     return str(out_file)
