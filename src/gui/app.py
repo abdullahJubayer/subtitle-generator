@@ -4,7 +4,7 @@ import logging
 import os
 from typing import Optional
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -130,13 +130,24 @@ def _get_installed_ollama_models() -> list[str]:
         return default_models
 
 
+class OllamaModelFetcherThread(QThread):
+    """Background thread fetching local Ollama models without blocking GUI main looper thread."""
+
+    models_fetched = pyqtSignal(list)
+
+    def run(self) -> None:
+        models = _get_installed_ollama_models()
+        self.models_fetched.emit(models)
+
+
 class SubtitleGeneratorApp(QMainWindow):
     """Main Window GUI Application for Video-to-Subtitle AI Generator."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.worker: Optional[PipelineWorker] = None
         self.selected_video_path: Optional[str] = None
+        self._fetch_thread: Optional[OllamaModelFetcherThread] = None
 
         self.setWindowTitle("Video-to-Subtitle AI Pipeline")
         self.resize(1100, 720)
@@ -144,7 +155,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
         self._init_ui()
 
-    def _init_ui(self):
+    def _init_ui(self) -> None:
         main_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.setCentralWidget(main_splitter)
 
@@ -227,15 +238,20 @@ class SubtitleGeneratorApp(QMainWindow):
         ollama_label.setFixedWidth(120)
         self.ollama_combo = QComboBox()
         self.ollama_combo.setEditable(True)
-        installed_models = _get_installed_ollama_models()
-        self.ollama_combo.addItems(installed_models)
-        if "llama3.2:3b" in installed_models:
-            self.ollama_combo.setCurrentText("llama3.2:3b")
+        default_models = ["llama3.2:3b", "llama3.1", "mistral", "gemma2", "phi3"]
+        self.ollama_combo.addItems(default_models)
+        self.ollama_combo.setCurrentText("llama3.2:3b")
+
         ollama_layout.addWidget(ollama_label)
         ollama_layout.addWidget(self.ollama_combo)
         settings_layout.addWidget(self.ollama_container)
 
         self.enable_llm_check.toggled.connect(self.ollama_container.setVisible)
+
+        # Offload dynamic model discovery to background QThread
+        self._fetch_thread = OllamaModelFetcherThread(self)
+        self._fetch_thread.models_fetched.connect(self._on_ollama_models_fetched)
+        self._fetch_thread.start()
 
         left_layout.addWidget(settings_group)
 
@@ -301,9 +317,21 @@ class SubtitleGeneratorApp(QMainWindow):
         # Add panels to split container
         main_splitter.addWidget(left_widget)
         main_splitter.addWidget(right_widget)
-        main_splitter.setSizes([480, 620])
+    def _on_ollama_models_fetched(self, models: list[str]) -> None:
+        """Callback handling async background discovery of local Ollama models."""
+        if not models:
+            return
+        current = self.ollama_combo.currentText()
+        self.ollama_combo.clear()
+        self.ollama_combo.addItems(models)
+        if current in models:
+            self.ollama_combo.setCurrentText(current)
+        elif "llama3.2:3b" in models:
+            self.ollama_combo.setCurrentText("llama3.2:3b")
+        else:
+            self.ollama_combo.setEditText(current)
 
-    def _on_browse_file(self):
+    def _on_browse_file(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Select Video File",
@@ -315,7 +343,7 @@ class SubtitleGeneratorApp(QMainWindow):
             self.file_path_edit.setText(file_path)
 
     @property
-    def skip_grammar_check(self):
+    def skip_grammar_check(self) -> object:
         """Backward compatibility property wrapper for skip_grammar_check."""
         class DummyCheck:
             def __init__(self, check): self._check = check
@@ -325,7 +353,7 @@ class SubtitleGeneratorApp(QMainWindow):
         return DummyCheck(self.enable_llm_check)
 
     @property
-    def ollama_edit(self):
+    def ollama_edit(self) -> object:
         """Backward compatibility property for tests querying ollama_edit."""
         class DummyEdit:
             def __init__(self, combo):
@@ -498,7 +526,9 @@ class SubtitleGeneratorApp(QMainWindow):
         )
 
     def closeEvent(self, event) -> None:
-        """Gracefully handle window closing while worker thread is active."""
+        """Gracefully handle window closing while worker threads are active."""
+        if self._fetch_thread and self._fetch_thread.isRunning():
+            self._fetch_thread.wait(1000)
         if self.worker and self.worker.isRunning():
             self.worker.wait(2000)
         event.accept()

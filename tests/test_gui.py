@@ -21,7 +21,19 @@ class TestGUIComponents(unittest.TestCase):
 
     def setUp(self):
         self.app = SubtitleGeneratorApp()
+        if self.app._fetch_thread and self.app._fetch_thread.isRunning():
+            self.app._fetch_thread.wait(2000)
         self.app.show()
+
+    def tearDown(self):
+        if hasattr(self, "app") and self.app:
+            if self.app._fetch_thread and self.app._fetch_thread.isRunning():
+                self.app._fetch_thread.quit()
+                self.app._fetch_thread.wait(2000)
+            if self.app.worker and self.app.worker.isRunning():
+                self.app.worker.quit()
+                self.app.worker.wait(2000)
+            self.app.close()
 
     def test_app_initialization(self):
         """Verify SubtitleGeneratorApp window title, QSS, widgets, and default values."""

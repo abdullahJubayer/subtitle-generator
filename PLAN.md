@@ -35,6 +35,6 @@ A Python-based pipeline that extracts audio from video, transcribes it with time
 - [x] **Task 6.3:** GUI Language Selection — Dropdown in PyQt6 interface for target language selection (Bangla, Spanish, French, German, etc.).
 
 ## Phase 7: Dynamic LLM Model Selector & Conditional UI Visibility
-- [ ] **Task 7.1:** Conditional Ollama Toggle & Visibility — Add "Enable LLM Grammar Correction & Translation" checkbox; show Ollama model selection dropdown dynamically when checked.
-- [ ] **Task 7.2:** Dynamic Installed Model Discovery & Custom Entry — Auto-populate local Ollama models dynamically via `ollama.list()` with custom model input capability.
-- [ ] **Task 7.3:** CLI & Pipeline Integration — Ensure pipeline conditionally activates LLM processing based on toggle state.
+- [x] **Task 7.1:** Conditional Ollama Toggle & Visibility — Add "Enable LLM Grammar Correction & Translation" checkbox; show Ollama model selection dropdown dynamically when checked.
+- [x] **Task 7.2:** Dynamic Installed Model Discovery & Custom Entry — Auto-populate local Ollama models dynamically via `ollama.list()` with custom model input capability.
+- [x] **Task 7.3:** CLI & Pipeline Integration — Ensure pipeline conditionally activates LLM processing based on toggle state.
