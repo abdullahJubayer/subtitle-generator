@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""CLI entry point for Video-to-Subtitle AI Pipeline."""
+"""CLI and GUI entry point for Video-to-Subtitle AI Pipeline."""
 
 import argparse
 import logging
 import sys
-from src.orchestration.pipeline import run_pipeline
 
 
 def setup_logging(verbose: bool = False) -> None:
@@ -17,15 +16,35 @@ def setup_logging(verbose: bool = False) -> None:
     )
 
 
+def launch_gui() -> int:
+    """Launch PyQt6 Desktop GUI application."""
+    from PyQt6.QtWidgets import QApplication
+    from src.gui.app import SubtitleGeneratorApp
+
+    app = QApplication(sys.argv)
+    window = SubtitleGeneratorApp()
+    window.show()
+    return app.exec()
+
+
 def main() -> int:
-    """CLI Entry point parser and execution handler."""
+    """CLI / GUI Entry point parser and execution handler."""
+    # If no arguments provided, default to launching desktop GUI
+    if len(sys.argv) == 1:
+        return launch_gui()
+
     parser = argparse.ArgumentParser(
         description="Video-to-Subtitle AI Pipeline: Extract audio, transcribe with Whisper, correct grammar with local LLM, and output .srt subtitles."
     )
     parser.add_argument(
+        "--gui",
+        action="store_true",
+        help="Launch PyQt6 Desktop GUI application",
+    )
+    parser.add_argument(
         "-i",
         "--input",
-        required=True,
+        required=False,
         help="Path to input video file (.mp4, .mkv, .mov, etc.)",
     )
     parser.add_argument(
@@ -58,7 +77,16 @@ def main() -> int:
     )
 
     args = parser.parse_args()
+
+    if args.gui:
+        return launch_gui()
+
+    if not args.input:
+        parser.error("the following arguments are required: -i/--input (or launch with --gui)")
+
     setup_logging(args.verbose)
+
+    from src.orchestration.pipeline import run_pipeline
 
     try:
         output_srt = run_pipeline(
