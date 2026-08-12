@@ -46,3 +46,10 @@ Use the standard Python `subprocess` module. Do not use heavy wrapper libraries 
 3. Use `subprocess.run()`. Suppress stdout and stderr to keep the console clean.
 4. Raise a `RuntimeError` if the subprocess fails.
 5. Return the absolute path to the extracted audio file.
+
+---
+
+## Subagent Team Roles & Model Configuration
+- **`dev` (Developer Subagent):** Implements module features, writes code in `src/`, adheres to Python 3.10+ typing, Pydantic schemas, and error handling.
+- **`seniorDev` (Senior Reviewer Subagent):** High-reasoning model (`pro`). Evaluates code quality, plan alignment, type safety, security, and PEP-8 best practices.
+- **`qa` (QA & Testing Subagent):** Executes test suites, validates CLI flags, checks timestamp integrity, and verifies edge cases.
