@@ -113,6 +113,23 @@ QCheckBox {
 """
 
 
+def _get_installed_ollama_models() -> list[str]:
+    """Fetch installed local models from Ollama API."""
+    default_models = ["llama3.2:3b", "llama3.1", "mistral", "gemma2", "phi3"]
+    try:
+        import ollama
+        resp = ollama.list()
+        models = getattr(resp, "models", []) or (resp.get("models", []) if isinstance(resp, dict) else [])
+        extracted = []
+        for m in models:
+            name = m.model if hasattr(m, "model") else (m.get("name", "") if isinstance(m, dict) else str(m))
+            if name:
+                extracted.append(name)
+        return extracted if extracted else default_models
+    except Exception:
+        return default_models
+
+
 class SubtitleGeneratorApp(QMainWindow):
     """Main Window GUI Application for Video-to-Subtitle AI Generator."""
 
@@ -195,15 +212,17 @@ class SubtitleGeneratorApp(QMainWindow):
         self.language_combo.setCurrentText("English")
         language_layout.addWidget(language_label)
         language_layout.addWidget(self.language_combo)
-        settings_layout.addLayout(language_layout)
-
-        # Ollama Model
+        # Ollama Model Dropdown
         ollama_layout = QHBoxLayout()
         ollama_label = QLabel("Ollama Model:")
         ollama_label.setFixedWidth(120)
-        self.ollama_edit = QLineEdit("llama3.2:3b")
+        self.ollama_combo = QComboBox()
+        installed_models = _get_installed_ollama_models()
+        self.ollama_combo.addItems(installed_models)
+        if "llama3.2:3b" in installed_models:
+            self.ollama_combo.setCurrentText("llama3.2:3b")
         ollama_layout.addWidget(ollama_label)
-        ollama_layout.addWidget(self.ollama_edit)
+        ollama_layout.addWidget(self.ollama_combo)
         settings_layout.addLayout(ollama_layout)
 
         # Skip Grammar / Translation
@@ -287,23 +306,24 @@ class SubtitleGeneratorApp(QMainWindow):
             self.selected_video_path = file_path
             self.file_path_edit.setText(file_path)
 
-    def _on_start_pipeline(self):
-        video_path = self.file_path_edit.text().strip()
-        if not video_path:
-            QMessageBox.warning(
-                self,
-                "No Input File",
-                "Please select a valid video file before starting the pipeline.",
-            )
-            return
-
-        if not os.path.exists(video_path):
-            QMessageBox.critical(
-                self,
-                "File Not Found",
-                f"The specified input file does not exist:\n{video_path}",
-            )
-            return
+    @property
+    def ollama_edit(self):
+        """Backward compatibility property for tests querying ollama_edit."""
+        class DummyEdit:
+            def __init__(self, combo):
+                self._combo = combo
+            def text(self):
+                return self._combo.currentText()
+            def setText(self, text_val):
+                idx = self._combo.findText(text_val)
+                if idx >= 0:
+                    self._combo.setCurrentIndex(idx)
+                else:
+                    self._combo.addItem(text_val)
+                    self._combo.setCurrentText(text_val)
+            def setEnabled(self, enabled):
+                self._combo.setEnabled(enabled)
+        return DummyEdit(self.ollama_combo)
 
     def _set_controls_enabled(self, enabled: bool) -> None:
         """Enable or disable interactive UI controls during pipeline execution."""
@@ -311,7 +331,7 @@ class SubtitleGeneratorApp(QMainWindow):
         self.browse_button.setEnabled(enabled)
         self.model_combo.setEnabled(enabled)
         self.language_combo.setEnabled(enabled)
-        self.ollama_edit.setEnabled(enabled)
+        self.ollama_combo.setEnabled(enabled)
         self.skip_grammar_check.setEnabled(enabled)
         if not enabled:
             self.start_button.setText("⏳ Pipeline Running...")
@@ -349,7 +369,7 @@ class SubtitleGeneratorApp(QMainWindow):
         # Gather settings
         model_size = self.model_combo.currentText()
         target_language = self.language_combo.currentText()
-        ollama_model = self.ollama_edit.text().strip() or "llama3.2:3b"
+        ollama_model = self.ollama_combo.currentText().strip() or "llama3.2:3b"
         skip_grammar = self.skip_grammar_check.isChecked()
 
         # Spawn pipeline worker thread
