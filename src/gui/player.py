@@ -277,3 +277,4 @@ class VideoPlayerWidget(QWidget):
         x = (vw_rect.width() - width) // 2
         y = vw_rect.height() - height - margin_bottom
         self.subtitle_label.setGeometry(x, max(10, y), width, height)
+        self.subtitle_label.raise_()

@@ -234,6 +234,21 @@ class SubtitleGeneratorApp(QMainWindow):
         self.video_player.setEnabled(False)
         right_layout.addWidget(self.video_player, stretch=1)
 
+        # Action bar for SRT download/export
+        srt_action_layout = QHBoxLayout()
+        self.export_button = QPushButton("💾 Export / Save .SRT File")
+        self.export_button.setEnabled(False)
+        self.export_button.setStyleSheet("background-color: #a6e3a1; color: #11111b; font-weight: bold; padding: 8px 16px; border-radius: 6px;")
+        self.export_button.clicked.connect(self._on_export_srt)
+
+        self.load_srt_button = QPushButton("📂 Load .SRT Subtitle File")
+        self.load_srt_button.setStyleSheet("background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 8px 16px; border-radius: 6px;")
+        self.load_srt_button.clicked.connect(self._on_load_custom_srt)
+
+        srt_action_layout.addWidget(self.export_button)
+        srt_action_layout.addWidget(self.load_srt_button)
+        right_layout.addLayout(srt_action_layout)
+
         # Add panels to split container
         main_splitter.addWidget(left_widget)
         main_splitter.addWidget(right_widget)
@@ -307,10 +322,74 @@ class SubtitleGeneratorApp(QMainWindow):
         self.progress_bar.setValue(100)
         self.stage_label.setText("Status: ✨ Pipeline Completed!")
 
+        self.generated_srt_path = srt_path
+        self.export_button.setEnabled(True)
+
         # Enable Video Player widget, load video & generated .srt, and start playback automatically!
         self.video_player.setEnabled(True)
         self.video_player.load_video(video_path, srt_path)
         self.video_player.play()
+
+        QMessageBox.information(
+            self,
+            "Pipeline Complete",
+            f"✨ Subtitle generation complete!\n\nSubtitles auto-loaded into player.\nClick '💾 Export / Save .SRT File' to save it to your computer.\n\nFile location: {srt_path}",
+        )
+
+    def _on_export_srt(self) -> None:
+        """Export/save the generated .srt file to user selected path."""
+        if not hasattr(self, "generated_srt_path") or not self.generated_srt_path or not os.path.exists(self.generated_srt_path):
+            QMessageBox.warning(
+                self,
+                "No Subtitle File",
+                "No generated subtitle file is available to export.",
+            )
+            return
+
+        default_name = os.path.basename(self.generated_srt_path)
+        save_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Subtitle File",
+            default_name,
+            "SubRip Subtitle Files (*.srt);;All Files (*)",
+        )
+        if save_path:
+            import shutil
+            try:
+                shutil.copy2(self.generated_srt_path, save_path)
+                QMessageBox.information(
+                    self,
+                    "Export Successful",
+                    f"Subtitle file saved successfully to:\n\n{save_path}",
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Export Failed",
+                    f"Failed to save subtitle file to target location:\n{e}",
+                )
+
+    def _on_load_custom_srt(self) -> None:
+        """Load an external .srt subtitle file into the video player."""
+        srt_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select .SRT Subtitle File",
+            "",
+            "SubRip Subtitle Files (*.srt);;All Files (*)",
+        )
+        if srt_path:
+            self.generated_srt_path = srt_path
+            self.export_button.setEnabled(True)
+            if self.selected_video_path and os.path.exists(self.selected_video_path):
+                self.video_player.setEnabled(True)
+                self.video_player.load_video(self.selected_video_path, srt_path)
+                self.video_player.play()
+            else:
+                QMessageBox.information(
+                    self,
+                    "Subtitle Loaded",
+                    f"Subtitle file loaded: {srt_path}\nSelect a video file to play video with subtitles.",
+                )
 
     def _on_pipeline_error(self, error_msg: str) -> None:
         self.start_button.setEnabled(True)
