@@ -123,16 +123,30 @@ class VideoPlayerWidget(QWidget):
         # Subtitle overlay label positioned over video widget
         self.subtitle_label = QLabel(self.video_widget)
         self.subtitle_label.setStyleSheet(
-            "background-color: rgba(0, 0, 0, 180);"
-            "color: white;"
+            "background-color: rgba(0, 0, 0, 200);"
+            "color: #f9e2af;"
             "font-weight: bold;"
-            "font-size: 16px;"
-            "padding: 6px 12px;"
-            "border-radius: 4px;"
+            "font-size: 17px;"
+            "padding: 8px 16px;"
+            "border-radius: 6px;"
         )
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.subtitle_label.setWordWrap(True)
         self.subtitle_label.hide()
+
+        # Dedicated Live Subtitle Caption Bar (always visible beneath video frame)
+        self.subtitle_bar = QLabel("💬 Subtitles: Load a video with .srt to preview captions")
+        self.subtitle_bar.setStyleSheet(
+            "background-color: #11111b;"
+            "color: #f9e2af;"
+            "font-weight: bold;"
+            "font-size: 15px;"
+            "padding: 10px 14px;"
+            "border-radius: 6px;"
+            "border: 1px solid #313244;"
+        )
+        self.subtitle_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.subtitle_bar.setWordWrap(True)
 
         # Media player and audio output initialization
         self.media_player = QMediaPlayer(self)
@@ -165,6 +179,7 @@ class VideoPlayerWidget(QWidget):
         controls_layout.addWidget(self.volume_slider)
 
         main_layout.addWidget(self.video_container, stretch=1)
+        main_layout.addWidget(self.subtitle_bar)
         main_layout.addLayout(controls_layout)
 
         # Event filter to dynamically center subtitle overlay when video widget resizes
@@ -196,6 +211,10 @@ class VideoPlayerWidget(QWidget):
         self.media_player.setSource(video_url)
         self.subtitle_label.setText("")
         self.subtitle_label.hide()
+        if self.subtitles:
+            self.subtitle_bar.setText(f"💬 Subtitles Loaded ({len(self.subtitles)} segments) — Ready to play!")
+        else:
+            self.subtitle_bar.setText("💬 Subtitles: No .srt subtitle file loaded")
 
     def load_video(self, video_path: str, srt_path: Optional[str] = None) -> None:
         """Load video file and optional subtitle file."""
@@ -208,7 +227,6 @@ class VideoPlayerWidget(QWidget):
     def pause(self) -> None:
         """Pause video playback."""
         self.media_player.pause()
-
 
     def _toggle_play_pause(self) -> None:
         if self.media_player.playbackState() == QMediaPlayer.PlaybackState.PlayingState:
@@ -253,10 +271,13 @@ class VideoPlayerWidget(QWidget):
         if current_text:
             self.subtitle_label.setText(current_text)
             self.subtitle_label.show()
+            self.subtitle_bar.setText(f"💬 {current_text}")
             self._update_subtitle_position()
         else:
             self.subtitle_label.setText("")
             self.subtitle_label.hide()
+            if self.subtitles:
+                self.subtitle_bar.setText("💬 (Playing video...)")
 
     def _update_subtitle_position(self) -> None:
         if not self.subtitle_label.text():
