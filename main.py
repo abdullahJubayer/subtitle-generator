@@ -70,6 +70,12 @@ def main() -> int:
         help="Skip LLM grammar correction stage",
     )
     parser.add_argument(
+        "-l",
+        "--target-language",
+        default="English",
+        help="Target language for subtitles (default: English)",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -95,6 +101,7 @@ def main() -> int:
             model_size=args.model,
             skip_grammar=args.skip_grammar,
             ollama_model=args.ollama_model,
+            target_language=args.target_language,
         )
         print(f"\n✨ Subtitle generation complete! File saved at:\n   {output_srt}")
         return 0

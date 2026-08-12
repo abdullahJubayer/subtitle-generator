@@ -175,6 +175,28 @@ class SubtitleGeneratorApp(QMainWindow):
         whisper_layout.addWidget(self.model_combo)
         settings_layout.addLayout(whisper_layout)
 
+        # Target Language
+        language_layout = QHBoxLayout()
+        language_label = QLabel("Target Language:")
+        language_label.setFixedWidth(120)
+        self.language_combo = QComboBox()
+        self.language_combo.addItems([
+            "English",
+            "Bangla (Bengali)",
+            "Spanish",
+            "French",
+            "German",
+            "Hindi",
+            "Japanese",
+            "Arabic",
+            "Chinese",
+            "Portuguese",
+        ])
+        self.language_combo.setCurrentText("English")
+        language_layout.addWidget(language_label)
+        language_layout.addWidget(self.language_combo)
+        settings_layout.addLayout(language_layout)
+
         # Ollama Model
         ollama_layout = QHBoxLayout()
         ollama_label = QLabel("Ollama Model:")
@@ -291,6 +313,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
         # Gather settings
         model_size = self.model_combo.currentText()
+        target_language = self.language_combo.currentText()
         ollama_model = self.ollama_edit.text().strip() or "llama3.1"
         skip_grammar = self.skip_grammar_check.isChecked()
 
@@ -300,6 +323,7 @@ class SubtitleGeneratorApp(QMainWindow):
             model_size=model_size,
             skip_grammar=skip_grammar,
             ollama_model=ollama_model,
+            target_language=target_language,
         )
         self.worker.progress_updated.connect(self._on_progress_updated)
         self.worker.log_emitted.connect(self._on_log_emitted)

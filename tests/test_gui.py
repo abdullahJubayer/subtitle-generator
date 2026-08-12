@@ -26,9 +26,63 @@ class TestGUIComponents(unittest.TestCase):
         """Verify SubtitleGeneratorApp window title, QSS, widgets, and default values."""
         self.assertEqual(self.app.windowTitle(), "Video-to-Subtitle AI Pipeline")
         self.assertEqual(self.app.model_combo.currentText(), "small")
+        self.assertEqual(self.app.language_combo.currentText(), "English")
+        expected_languages = [
+            "English",
+            "Bangla (Bengali)",
+            "Spanish",
+            "French",
+            "German",
+            "Hindi",
+            "Japanese",
+            "Arabic",
+            "Chinese",
+            "Portuguese",
+        ]
+        self.assertEqual(
+            [self.app.language_combo.itemText(i) for i in range(self.app.language_combo.count())],
+            expected_languages,
+        )
         self.assertEqual(self.app.ollama_edit.text(), "llama3.2:3b")
         self.assertFalse(self.app.skip_grammar_check.isChecked())
         self.assertFalse(self.app.video_player.isEnabled())
+
+    def test_start_pipeline_passes_target_language(self):
+        """Verify _on_start_pipeline extracts target_language and passes to PipelineWorker."""
+        self.app.file_path_edit.setText("/tmp/sample.mp4")
+        self.app.language_combo.setCurrentText("Spanish")
+        with patch("os.path.exists", return_value=True), \
+             patch("src.gui.app.PipelineWorker") as mock_worker_cls:
+            mock_worker_instance = MagicMock()
+            mock_worker_cls.return_value = mock_worker_instance
+
+            self.app._on_start_pipeline()
+
+            mock_worker_cls.assert_called_once_with(
+                video_path="/tmp/sample.mp4",
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="llama3.2:3b",
+                target_language="Spanish",
+            )
+            mock_worker_instance.start.assert_called_once()
+
+    def test_worker_passes_target_language(self):
+        """Verify PipelineWorker passes target_language to run_pipeline."""
+        worker = PipelineWorker(
+            video_path="/tmp/test.mp4",
+            target_language="Bangla (Bengali)",
+        )
+        with patch("src.gui.worker.run_pipeline", return_value="/tmp/test.srt") as mock_run:
+            worker.run()
+            mock_run.assert_called_once_with(
+                video_path="/tmp/test.mp4",
+                output_path=None,
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="llama3.1",
+                target_language="Bangla (Bengali)",
+            )
 
     def test_browse_file_selection(self):
         """Verify QFileDialog file selection updates file_path_edit."""
@@ -79,7 +133,6 @@ class TestGUIComponents(unittest.TestCase):
             player.load_video("/tmp/sample.mp4", "/tmp/sample.srt")
             mock_source.assert_called_once()
 
-
     def test_main_cli_gui_flag(self):
         """Verify main.py launches GUI on --gui or no arguments."""
         with patch("sys.argv", ["main.py", "--gui"]), patch("main.launch_gui", return_value=0) as mock_launch:
@@ -91,6 +144,22 @@ class TestGUIComponents(unittest.TestCase):
             res = main.main()
             self.assertEqual(res, 0)
             mock_launch.assert_called_once()
+
+    def test_main_cli_target_language_flag(self):
+        """Verify main.py CLI accepts -l / --target-language flag and passes to run_pipeline."""
+        with patch("sys.argv", ["main.py", "-i", "/tmp/sample.mp4", "-l", "French"]), \
+             patch("src.orchestration.pipeline.run_pipeline", return_value="/tmp/sample.srt") as mock_run, \
+             patch("main.setup_logging"):
+            res = main.main()
+            self.assertEqual(res, 0)
+            mock_run.assert_called_once_with(
+                video_path="/tmp/sample.mp4",
+                output_path=None,
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="llama3.2:3b",
+                target_language="French",
+            )
 
 
 if __name__ == "__main__":

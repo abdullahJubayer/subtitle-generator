@@ -69,6 +69,7 @@ class PipelineWorker(QThread):
         model_size: WhisperModelSize = "small",
         skip_grammar: bool = False,
         ollama_model: str = "llama3.1",
+        target_language: str = "English",
         parent: Optional[QObject] = None,
     ) -> None:
         super().__init__(parent)
@@ -77,6 +78,7 @@ class PipelineWorker(QThread):
         self.model_size = model_size
         self.skip_grammar = skip_grammar
         self.ollama_model = ollama_model
+        self.target_language = target_language
 
     def run(self) -> None:
         """Execute the pipeline in a separate thread."""
@@ -101,6 +103,7 @@ class PipelineWorker(QThread):
                 model_size=self.model_size,
                 skip_grammar=self.skip_grammar,
                 ollama_model=self.ollama_model,
+                target_language=self.target_language,
             )
             self.progress_updated.emit(100, "Pipeline executed successfully!")
             self.progress_changed.emit(100, "Pipeline executed successfully!")

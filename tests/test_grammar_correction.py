@@ -63,6 +63,58 @@ class TestGrammarCorrection(unittest.TestCase):
         result = correct_grammar([])
         self.assertEqual(result, [])
 
+    @patch("ollama.chat")
+    def test_correct_grammar_translation_prompt(self, mock_chat):
+        mock_response = MagicMock()
+        mock_response.message.content = '{"segments": [{"id": 1, "text": "Hola mundo"}]}'
+        mock_chat.return_value = mock_response
+
+        segments: list[SegmentDict] = [
+            {"id": 1, "start": 0.0, "end": 2.0, "text": "hello world"},
+        ]
+
+        result = correct_grammar(segments, model_name="llama3.2:3b", target_language="Spanish")
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["text"], "Hola mundo")
+
+        mock_chat.assert_called_once()
+        _, kwargs = mock_chat.call_args
+        messages = kwargs["messages"]
+        system_prompt = messages[0]["content"]
+        expected_prompt = (
+            "You are an expert translator and subtitle editor. Translate and adapt "
+            "the subtitle text into fluent, natural, idiomatically accurate Spanish. "
+            "DO NOT change IDs. Keep the exact same number of segments."
+        )
+        self.assertEqual(system_prompt, expected_prompt)
+
+    @patch("ollama.chat")
+    def test_correct_grammar_english_prompt(self, mock_chat):
+        mock_response = MagicMock()
+        mock_response.message.content = '{"segments": [{"id": 1, "text": "Hello, world!"}]}'
+        mock_chat.return_value = mock_response
+
+        segments: list[SegmentDict] = [
+            {"id": 1, "start": 0.0, "end": 2.0, "text": "hello world"},
+        ]
+
+        result = correct_grammar(segments, target_language="English")
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["text"], "Hello, world!")
+
+        mock_chat.assert_called_once()
+        _, kwargs = mock_chat.call_args
+        messages = kwargs["messages"]
+        system_prompt = messages[0]["content"]
+        expected_prompt = (
+            "You are a subtitle editor. Correct grammar. "
+            "DO NOT change IDs. Keep the exact same number of segments."
+        )
+        self.assertEqual(system_prompt, expected_prompt)
+
 
 if __name__ == "__main__":
     unittest.main()
+

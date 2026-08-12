@@ -25,6 +25,11 @@ A Python-based pipeline that extracts audio from video, transcribes it with time
 - [x] Optimize chunk sizes for the LLM payload to prevent context window overflow.
 
 ## Phase 5: Desktop GUI & Video Player Integration
-- [ ] **Task 5.1:** File Picker Dialog — Select any local video file via GUI.
-- [ ] **Task 5.2:** Live Progress Tracker — Visual progress bar & stage status (Extraction -> Transcription -> LLM -> SRT).
-- [ ] **Task 5.3:** Video Player & Subtitle Preview — Play input video with synced generated subtitle overlay.
+- [x] **Task 5.1:** File Picker Dialog — Select any local video file via GUI.
+- [x] **Task 5.2:** Live Progress Tracker — Visual progress bar & stage status (Extraction -> Transcription -> LLM -> SRT).
+- [x] **Task 5.3:** Video Player & Subtitle Preview — Play input video with synced generated subtitle overlay.
+
+## Phase 6: Multi-language Natural Translation Engine
+- [ ] **Task 6.1:** Ollama Natural Translation Module — Translate and rephrase subtitles into natural target language (e.g., Bangla / Bengali) using LLM.
+- [ ] **Task 6.2:** CLI Target Language Flag — Support `--target-language` (`-l` / `--language`) parameter.
+- [ ] **Task 6.3:** GUI Language Selection — Dropdown in PyQt6 interface for target language selection (Bangla, Spanish, French, German, etc.).

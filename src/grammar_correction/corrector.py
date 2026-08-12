@@ -8,13 +8,15 @@ logger = logging.getLogger(__name__)
 
 def correct_grammar(
     segments: list[SegmentDict],
-    model_name: str = "llama3.1",
+    model_name: str = "llama3.2:3b",
+    target_language: str = "English",
 ) -> list[SegmentDict]:
-    """Correct the grammar of subtitle text segments using Ollama LLM.
+    """Correct the grammar of subtitle text segments or translate them using Ollama LLM.
 
     Args:
         segments: List of segment dictionaries with keys 'id', 'start', 'end', 'text'.
-        model_name: Ollama LLM model name to use for grammar correction.
+        model_name: Ollama LLM model name to use for grammar correction/translation.
+        target_language: Target language for translation/correction (default "English").
 
     Returns:
         A list of segment dictionaries with updated 'text' fields.
@@ -35,10 +37,15 @@ def correct_grammar(
         ]
 
         try:
-            prompt_system = (
-                "You are a subtitle editor. Correct grammar. "
-                "DO NOT change IDs. Keep the exact same number of segments."
-            )
+            if target_language.lower() != "english":
+                prompt_system = (
+                    f"You are an expert translator and subtitle editor. Translate and adapt the subtitle text into fluent, natural, idiomatically accurate {target_language}. DO NOT change IDs. Keep the exact same number of segments."
+                )
+            else:
+                prompt_system = (
+                    "You are a subtitle editor. Correct grammar. "
+                    "DO NOT change IDs. Keep the exact same number of segments."
+                )
             messages = [
                 {"role": "system", "content": prompt_system},
                 {"role": "user", "content": json.dumps(payload)},
