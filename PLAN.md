@@ -20,6 +20,11 @@ A Python-based pipeline that extracts audio from video, transcribes it with time
 - [ ] Add robust error handling and progress logging to the console.
 
 ## Phase 4: Testing & Refinement
-- [ ] Test with a short (< 1 min) video.
-- [ ] Verify timestamp integrity post-LLM correction.
-- [ ] Optimize chunk sizes for the LLM payload to prevent context window overflow.
+- [x] Test with a short (< 1 min) video.
+- [x] Verify timestamp integrity post-LLM correction.
+- [x] Optimize chunk sizes for the LLM payload to prevent context window overflow.
+
+## Phase 5: Desktop GUI & Video Player Integration
+- [ ] **Task 5.1:** File Picker Dialog — Select any local video file via GUI.
+- [ ] **Task 5.2:** Live Progress Tracker — Visual progress bar & stage status (Extraction -> Transcription -> LLM -> SRT).
+- [ ] **Task 5.3:** Video Player & Subtitle Preview — Play input video with synced generated subtitle overlay.
