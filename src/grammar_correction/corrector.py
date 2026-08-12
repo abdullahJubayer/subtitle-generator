@@ -44,11 +44,30 @@ def correct_grammar(
                 {"role": "user", "content": json.dumps(payload)},
             ]
 
-            response = ollama.chat(
-                model=model_name,
-                format=SubtitleResponse.model_json_schema(),
-                messages=messages,
-            )
+            # Auto-detect available local model if specified model fails or is missing
+            try:
+                response = ollama.chat(
+                    model=model_name,
+                    format=SubtitleResponse.model_json_schema(),
+                    messages=messages,
+                )
+            except ollama.ResponseError as err:
+                if err.status_code == 404:
+                    available = ollama.list()
+                    models_list = getattr(available, "models", []) or available.get("models", [])
+                    if models_list:
+                        first_model = models_list[0].model if hasattr(models_list[0], "model") else models_list[0].get("name", "")
+                        logger.info("Model '%s' not found. Auto-switching to locally installed model '%s'", model_name, first_model)
+                        model_name = first_model
+                        response = ollama.chat(
+                            model=model_name,
+                            format=SubtitleResponse.model_json_schema(),
+                            messages=messages,
+                        )
+                    else:
+                        raise
+                else:
+                    raise
 
             content = ""
             if hasattr(response, "message") and hasattr(response.message, "content"):

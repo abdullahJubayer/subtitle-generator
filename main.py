@@ -61,8 +61,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--ollama-model",
-        default="llama3.1",
-        help="Local Ollama LLM model name for grammar correction (default: llama3.1)",
+        default="llama3.2:3b",
+        help="Local Ollama LLM model name for grammar correction (default: llama3.2:3b)",
     )
     parser.add_argument(
         "--skip-grammar",

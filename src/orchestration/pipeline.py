@@ -18,7 +18,7 @@ def run_pipeline(
     output_path: str | None = None,
     model_size: WhisperModelSize = "small",
     skip_grammar: bool = False,
-    ollama_model: str = "llama3.1",
+    ollama_model: str = "llama3.2:3b",
 ) -> str:
     """Run the complete Video-to-Subtitle pipeline.
 

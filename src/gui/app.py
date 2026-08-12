@@ -179,7 +179,7 @@ class SubtitleGeneratorApp(QMainWindow):
         ollama_layout = QHBoxLayout()
         ollama_label = QLabel("Ollama Model:")
         ollama_label.setFixedWidth(120)
-        self.ollama_edit = QLineEdit("llama3.1")
+        self.ollama_edit = QLineEdit("llama3.2:3b")
         ollama_layout.addWidget(ollama_label)
         ollama_layout.addWidget(self.ollama_edit)
         settings_layout.addLayout(ollama_layout)

@@ -26,7 +26,7 @@ class TestGUIComponents(unittest.TestCase):
         """Verify SubtitleGeneratorApp window title, QSS, widgets, and default values."""
         self.assertEqual(self.app.windowTitle(), "Video-to-Subtitle AI Pipeline")
         self.assertEqual(self.app.model_combo.currentText(), "small")
-        self.assertEqual(self.app.ollama_edit.text(), "llama3.1")
+        self.assertEqual(self.app.ollama_edit.text(), "llama3.2:3b")
         self.assertFalse(self.app.skip_grammar_check.isChecked())
         self.assertFalse(self.app.video_player.isEnabled())
 
