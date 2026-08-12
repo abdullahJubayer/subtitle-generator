@@ -305,8 +305,43 @@ class SubtitleGeneratorApp(QMainWindow):
             )
             return
 
-        # Disable start button & reset status
-        self.start_button.setEnabled(False)
+    def _set_controls_enabled(self, enabled: bool) -> None:
+        """Enable or disable interactive UI controls during pipeline execution."""
+        self.start_button.setEnabled(enabled)
+        self.browse_button.setEnabled(enabled)
+        self.model_combo.setEnabled(enabled)
+        self.language_combo.setEnabled(enabled)
+        self.ollama_edit.setEnabled(enabled)
+        self.skip_grammar_check.setEnabled(enabled)
+        if not enabled:
+            self.start_button.setText("⏳ Pipeline Running...")
+            self.start_button.setStyleSheet(
+                "background-color: #45475a; color: #a6adc8; font-weight: bold; border-radius: 6px;"
+            )
+        else:
+            self.start_button.setText("🚀 Start Subtitle Pipeline")
+            self.start_button.setStyleSheet("")
+
+    def _on_start_pipeline(self):
+        video_path = self.file_path_edit.text().strip()
+        if not video_path:
+            QMessageBox.warning(
+                self,
+                "No Input File",
+                "Please select a valid video file before starting the pipeline.",
+            )
+            return
+
+        if not os.path.exists(video_path):
+            QMessageBox.critical(
+                self,
+                "File Not Found",
+                f"The specified input file does not exist:\n{video_path}",
+            )
+            return
+
+        # Disable start button & controls, reset progress & logs
+        self._set_controls_enabled(False)
         self.progress_bar.setValue(0)
         self.stage_label.setText("Status: Initializing...")
         self.log_console.clear()
@@ -342,7 +377,7 @@ class SubtitleGeneratorApp(QMainWindow):
         self.log_console.append(msg)
 
     def _on_pipeline_finished(self, video_path: str, srt_path: str):
-        self.start_button.setEnabled(True)
+        self._set_controls_enabled(True)
         self.progress_bar.setValue(100)
         self.stage_label.setText("Status: ✨ Pipeline Completed!")
 
@@ -416,7 +451,7 @@ class SubtitleGeneratorApp(QMainWindow):
                 )
 
     def _on_pipeline_error(self, error_msg: str) -> None:
-        self.start_button.setEnabled(True)
+        self._set_controls_enabled(True)
         self.stage_label.setText("Status: ❌ Error Encountered")
         QMessageBox.critical(
             self,
