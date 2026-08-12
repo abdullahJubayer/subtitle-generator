@@ -53,3 +53,10 @@ Use the standard Python `subprocess` module. Do not use heavy wrapper libraries 
 - **`dev` (Developer Subagent):** Implements module features, writes code in `src/`, adheres to Python 3.10+ typing, Pydantic schemas, and error handling.
 - **`seniorDev` (Senior Reviewer Subagent):** High-reasoning model (`pro`). Evaluates code quality, plan alignment, type safety, security, and PEP-8 best practices.
 - **`qa` (QA & Testing Subagent):** Executes test suites, validates CLI flags, checks timestamp integrity, and verifies edge cases.
+
+## Subagent Workflow Pipeline (`dev` -> `seniorDev` -> `qa`)
+1. **Implementation (`dev`):** Picks feature issue, sets status to `In Progress`, and implements code under `src/`.
+2. **Review (`seniorDev` - `pro` model):** Inspects diff & code quality. If critical issues exist, `dev` fixes them.
+3. **QA & Testing (`qa`):** Runs empirical test suite & CLI verification.
+   - **Pass:** Move card to `Done` & close GitHub issue.
+   - **Fail:** Move card to `Backlog` & log failure reason on GitHub issue.
