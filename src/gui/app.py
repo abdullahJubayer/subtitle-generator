@@ -312,7 +312,7 @@ class SubtitleGeneratorApp(QMainWindow):
         self.video_player.load_video(video_path, srt_path)
         self.video_player.play()
 
-    def _on_pipeline_error(self, error_msg: str):
+    def _on_pipeline_error(self, error_msg: str) -> None:
         self.start_button.setEnabled(True)
         self.stage_label.setText("Status: ❌ Error Encountered")
         QMessageBox.critical(
@@ -320,3 +320,10 @@ class SubtitleGeneratorApp(QMainWindow):
             "Pipeline Failure",
             f"The subtitle pipeline encountered a critical error:\n\n{error_msg}",
         )
+
+    def closeEvent(self, event) -> None:
+        """Gracefully handle window closing while worker thread is active."""
+        if self.worker and self.worker.isRunning():
+            self.worker.wait(2000)
+        event.accept()
+
