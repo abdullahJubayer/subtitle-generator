@@ -21,6 +21,7 @@ class TestGUIComponents(unittest.TestCase):
 
     def setUp(self):
         self.app = SubtitleGeneratorApp()
+        self.app.show()
 
     def test_app_initialization(self):
         """Verify SubtitleGeneratorApp window title, QSS, widgets, and default values."""
@@ -43,9 +44,80 @@ class TestGUIComponents(unittest.TestCase):
             [self.app.language_combo.itemText(i) for i in range(self.app.language_combo.count())],
             expected_languages,
         )
-        self.assertEqual(self.app.ollama_edit.text(), "llama3.2:3b")
-        self.assertFalse(self.app.skip_grammar_check.isChecked())
+        self.assertTrue(self.app.enable_llm_check.isChecked())
+        self.assertTrue(self.app.ollama_combo.isEditable())
+        self.assertTrue(self.app.ollama_container.isVisible())
+        self.assertFalse(self.app.ollama_container.isHidden())
         self.assertFalse(self.app.video_player.isEnabled())
+
+    def test_ollama_container_visibility_toggle(self):
+        """Verify ollama_container visibility updates dynamically based on enable_llm_check state."""
+        self.assertTrue(self.app.enable_llm_check.isChecked())
+        self.assertTrue(self.app.ollama_container.isVisible())
+        self.assertFalse(self.app.ollama_container.isHidden())
+
+        self.app.enable_llm_check.setChecked(False)
+        self.assertFalse(self.app.ollama_container.isVisible())
+        self.assertTrue(self.app.ollama_container.isHidden())
+
+        self.app.enable_llm_check.setChecked(True)
+        self.assertTrue(self.app.ollama_container.isVisible())
+        self.assertFalse(self.app.ollama_container.isHidden())
+
+    def test_start_pipeline_skip_grammar_toggle(self):
+        """Verify PipelineWorker receives skip_grammar=True when enable_llm_check is unchecked, and skip_grammar=False when checked."""
+        self.app.file_path_edit.setText("/tmp/sample.mp4")
+        with patch("os.path.exists", return_value=True), \
+             patch("src.gui.app.PipelineWorker") as mock_worker_cls:
+            mock_worker_instance = MagicMock()
+            mock_worker_cls.return_value = mock_worker_instance
+
+            # Checked: skip_grammar=False
+            self.app.enable_llm_check.setChecked(True)
+            self.app._on_start_pipeline()
+            mock_worker_cls.assert_called_with(
+                video_path="/tmp/sample.mp4",
+                model_size="small",
+                skip_grammar=False,
+                ollama_model=self.app.ollama_combo.currentText(),
+                target_language="English",
+            )
+
+            mock_worker_cls.reset_mock()
+
+            # Unchecked: skip_grammar=True
+            self.app.enable_llm_check.setChecked(False)
+            self.app._on_start_pipeline()
+            mock_worker_cls.assert_called_with(
+                video_path="/tmp/sample.mp4",
+                model_size="small",
+                skip_grammar=True,
+                ollama_model=self.app.ollama_combo.currentText(),
+                target_language="English",
+            )
+
+    def test_custom_ollama_model_string_passing(self):
+        """Verify editable ollama_combo passes custom model string to PipelineWorker."""
+        self.app.file_path_edit.setText("/tmp/sample.mp4")
+        self.assertTrue(self.app.ollama_combo.isEditable())
+        custom_model = "mistral:7b-instruct-q4_0"
+        self.app.ollama_combo.setEditText(custom_model)
+
+        with patch("os.path.exists", return_value=True), \
+             patch("src.gui.app.PipelineWorker") as mock_worker_cls:
+            mock_worker_instance = MagicMock()
+            mock_worker_cls.return_value = mock_worker_instance
+
+            self.app._on_start_pipeline()
+
+            mock_worker_cls.assert_called_once_with(
+                video_path="/tmp/sample.mp4",
+                model_size="small",
+                skip_grammar=False,
+                ollama_model=custom_model,
+                target_language="English",
+            )
+            mock_worker_instance.start.assert_called_once()
 
     def test_start_pipeline_passes_target_language(self):
         """Verify _on_start_pipeline extracts target_language and passes to PipelineWorker."""
@@ -62,7 +134,7 @@ class TestGUIComponents(unittest.TestCase):
                 video_path="/tmp/sample.mp4",
                 model_size="small",
                 skip_grammar=False,
-                ollama_model="llama3.2:3b",
+                ollama_model=self.app.ollama_combo.currentText(),
                 target_language="Spanish",
             )
             mock_worker_instance.start.assert_called_once()

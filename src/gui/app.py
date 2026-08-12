@@ -214,22 +214,28 @@ class SubtitleGeneratorApp(QMainWindow):
         language_layout.addWidget(self.language_combo)
         settings_layout.addLayout(language_layout)
 
-        # Ollama Model Dropdown
-        ollama_layout = QHBoxLayout()
+        # Enable LLM Checkbox
+        self.enable_llm_check = QCheckBox("Enable LLM Grammar Correction & Translation")
+        self.enable_llm_check.setChecked(True)
+        settings_layout.addWidget(self.enable_llm_check)
+
+        # Container Widget for Ollama Model Selection
+        self.ollama_container = QWidget()
+        ollama_layout = QHBoxLayout(self.ollama_container)
+        ollama_layout.setContentsMargins(0, 0, 0, 0)
         ollama_label = QLabel("Ollama Model:")
         ollama_label.setFixedWidth(120)
         self.ollama_combo = QComboBox()
+        self.ollama_combo.setEditable(True)
         installed_models = _get_installed_ollama_models()
         self.ollama_combo.addItems(installed_models)
         if "llama3.2:3b" in installed_models:
             self.ollama_combo.setCurrentText("llama3.2:3b")
         ollama_layout.addWidget(ollama_label)
         ollama_layout.addWidget(self.ollama_combo)
-        settings_layout.addLayout(ollama_layout)
+        settings_layout.addWidget(self.ollama_container)
 
-        # Skip Grammar / Translation
-        self.skip_grammar_check = QCheckBox("Skip LLM Grammar Correction & Translation")
-        settings_layout.addWidget(self.skip_grammar_check)
+        self.enable_llm_check.toggled.connect(self.ollama_container.setVisible)
 
         left_layout.addWidget(settings_group)
 
@@ -309,6 +315,16 @@ class SubtitleGeneratorApp(QMainWindow):
             self.file_path_edit.setText(file_path)
 
     @property
+    def skip_grammar_check(self):
+        """Backward compatibility property wrapper for skip_grammar_check."""
+        class DummyCheck:
+            def __init__(self, check): self._check = check
+            def isChecked(self): return not self._check.isChecked()
+            def setChecked(self, val): self._check.setChecked(not val)
+            def setEnabled(self, val): self._check.setEnabled(val)
+        return DummyCheck(self.enable_llm_check)
+
+    @property
     def ollama_edit(self):
         """Backward compatibility property for tests querying ollama_edit."""
         class DummyEdit:
@@ -333,8 +349,8 @@ class SubtitleGeneratorApp(QMainWindow):
         self.browse_button.setEnabled(enabled)
         self.model_combo.setEnabled(enabled)
         self.language_combo.setEnabled(enabled)
+        self.enable_llm_check.setEnabled(enabled)
         self.ollama_combo.setEnabled(enabled)
-        self.skip_grammar_check.setEnabled(enabled)
         if not enabled:
             self.start_button.setText("⏳ Pipeline Running...")
             self.start_button.setStyleSheet(
@@ -372,7 +388,7 @@ class SubtitleGeneratorApp(QMainWindow):
         model_size = self.model_combo.currentText()
         target_language = self.language_combo.currentText()
         ollama_model = self.ollama_combo.currentText().strip() or "llama3.2:3b"
-        skip_grammar = self.skip_grammar_check.isChecked()
+        skip_grammar = not self.enable_llm_check.isChecked()
 
         # Spawn pipeline worker thread
         self.worker = PipelineWorker(

@@ -30,6 +30,11 @@ A Python-based pipeline that extracts audio from video, transcribes it with time
 - [x] **Task 5.3:** Video Player & Subtitle Preview — Play input video with synced generated subtitle overlay.
 
 ## Phase 6: Multi-language Natural Translation Engine
-- [ ] **Task 6.1:** Ollama Natural Translation Module — Translate and rephrase subtitles into natural target language (e.g., Bangla / Bengali) using LLM.
-- [ ] **Task 6.2:** CLI Target Language Flag — Support `--target-language` (`-l` / `--language`) parameter.
-- [ ] **Task 6.3:** GUI Language Selection — Dropdown in PyQt6 interface for target language selection (Bangla, Spanish, French, German, etc.).
+- [x] **Task 6.1:** Ollama Natural Translation Module — Translate and rephrase subtitles into natural target language (e.g., Bangla / Bengali) using LLM.
+- [x] **Task 6.2:** CLI Target Language Flag — Support `--target-language` (`-l` / `--language`) parameter.
+- [x] **Task 6.3:** GUI Language Selection — Dropdown in PyQt6 interface for target language selection (Bangla, Spanish, French, German, etc.).
+
+## Phase 7: Dynamic LLM Model Selector & Conditional UI Visibility
+- [ ] **Task 7.1:** Conditional Ollama Toggle & Visibility — Add "Enable LLM Grammar Correction & Translation" checkbox; show Ollama model selection dropdown dynamically when checked.
+- [ ] **Task 7.2:** Dynamic Installed Model Discovery & Custom Entry — Auto-populate local Ollama models dynamically via `ollama.list()` with custom model input capability.
+- [ ] **Task 7.3:** CLI & Pipeline Integration — Ensure pipeline conditionally activates LLM processing based on toggle state.
