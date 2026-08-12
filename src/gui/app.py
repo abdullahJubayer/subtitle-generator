@@ -206,8 +206,8 @@ class SubtitleGeneratorApp(QMainWindow):
         ollama_layout.addWidget(self.ollama_edit)
         settings_layout.addLayout(ollama_layout)
 
-        # Skip Grammar
-        self.skip_grammar_check = QCheckBox("Skip LLM Grammar Correction")
+        # Skip Grammar / Translation
+        self.skip_grammar_check = QCheckBox("Skip LLM Grammar Correction & Translation")
         settings_layout.addWidget(self.skip_grammar_check)
 
         left_layout.addWidget(settings_group)
@@ -314,7 +314,7 @@ class SubtitleGeneratorApp(QMainWindow):
         # Gather settings
         model_size = self.model_combo.currentText()
         target_language = self.language_combo.currentText()
-        ollama_model = self.ollama_edit.text().strip() or "llama3.1"
+        ollama_model = self.ollama_edit.text().strip() or "llama3.2:3b"
         skip_grammar = self.skip_grammar_check.isChecked()
 
         # Spawn pipeline worker thread

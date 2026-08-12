@@ -68,7 +68,7 @@ class PipelineWorker(QThread):
         output_path: Optional[str] = None,
         model_size: WhisperModelSize = "small",
         skip_grammar: bool = False,
-        ollama_model: str = "llama3.1",
+        ollama_model: str = "llama3.2:3b",
         target_language: str = "English",
         parent: Optional[QObject] = None,
     ) -> None:

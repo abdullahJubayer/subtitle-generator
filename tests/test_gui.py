@@ -80,7 +80,7 @@ class TestGUIComponents(unittest.TestCase):
                 output_path=None,
                 model_size="small",
                 skip_grammar=False,
-                ollama_model="llama3.1",
+                ollama_model="llama3.2:3b",
                 target_language="Bangla (Bengali)",
             )
 
@@ -103,7 +103,8 @@ class TestGUIComponents(unittest.TestCase):
         video_path = "/tmp/test.mp4"
         srt_path = "/tmp/test.srt"
         with patch.object(self.app.video_player, "load_video") as mock_load, \
-             patch.object(self.app.video_player, "play") as mock_play:
+             patch.object(self.app.video_player, "play") as mock_play, \
+             patch("src.gui.app.QMessageBox.information") as mock_info:
             self.app._on_pipeline_finished(video_path, srt_path)
             self.assertTrue(self.app.start_button.isEnabled())
             self.assertEqual(self.app.progress_bar.value(), 100)
@@ -111,6 +112,7 @@ class TestGUIComponents(unittest.TestCase):
             self.assertTrue(self.app.video_player.isEnabled())
             mock_load.assert_called_once_with(video_path, srt_path)
             mock_play.assert_called_once()
+            mock_info.assert_called_once()
 
     def test_pipeline_error_handler(self):
         """Verify error dialog displayed when worker emits pipeline error."""
