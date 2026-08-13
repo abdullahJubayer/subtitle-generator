@@ -1,8 +1,11 @@
-"""LLM Provider abstraction layer supporting Ollama and Google Gemini APIs."""
+"""LLM Provider abstraction layer supporting Ollama, Google Gemini, and Puter.js APIs."""
 
+import json
 import logging
 import os
 from typing import Any
+import urllib.error
+import urllib.request
 import ollama
 from src.schemas import SubtitleResponse
 
@@ -15,10 +18,10 @@ def call_llm_provider(
     messages: list[dict[str, Any]],
     api_key: str | None = None,
 ) -> str:
-    """Route LLM requests to the specified provider ('ollama' or 'gemini').
+    """Route LLM requests to the specified provider ('ollama', 'gemini', or 'puter').
 
     Args:
-        provider: Provider name ('ollama' or 'gemini').
+        provider: Provider name ('ollama', 'gemini', or 'puter').
         model_name: Name of model to call.
         messages: List of message dictionaries containing 'role' and 'content'.
         api_key: API key for cloud providers (optional, falls back to environment variable).
@@ -27,7 +30,7 @@ def call_llm_provider(
         JSON string response from the LLM provider.
 
     Raises:
-        ValueError: If Gemini API key is missing.
+        ValueError: If Gemini or Puter API key is missing.
         RuntimeError / Exception: If LLM call fails.
     """
     provider_clean = (provider or "ollama").strip().lower()
@@ -89,6 +92,76 @@ def call_llm_provider(
             logger.error("Failed executing Gemini request with google.genai: %s", e)
             raise
 
+    elif provider_clean == "puter":
+        key = api_key or os.environ.get("PUTER_API_KEY")
+        if not key:
+            raise ValueError(
+                "Puter API key is missing. Provide 'api_key' or set PUTER_API_KEY environment variable."
+            )
+
+        if not model_name or model_name in ("llama3.2:3b", "llama3.1"):
+            model_name = "gpt-4o-mini"
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {key}",
+            "X-Puter-API-Key": key,
+        }
+        payload = {
+            "model": model_name,
+            "messages": messages,
+        }
+
+        try:
+            req = urllib.request.Request(
+                "https://api.puter.com/v2/ai/chat",
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            with urllib.request.urlopen(req) as response:
+                response_bytes = response.read()
+                res_data = json.loads(response_bytes.decode("utf-8"))
+        except urllib.error.HTTPError as err:
+            err_body = err.read().decode("utf-8", errors="replace")
+            logger.error("Failed executing Puter request (HTTP %s): %s", err.code, err_body)
+            raise RuntimeError(f"Puter API HTTP request failed ({err.code}): {err_body}") from err
+        except Exception as e:
+            logger.error("Failed executing Puter request: %s", e)
+            raise RuntimeError(f"Puter API request failed: {e}") from e
+
+        content = None
+        if isinstance(res_data, dict):
+            choices = res_data.get("choices")
+            if isinstance(choices, list) and len(choices) > 0 and isinstance(choices[0], dict):
+                first_choice = choices[0]
+                msg = first_choice.get("message")
+                if isinstance(msg, dict):
+                    content = msg.get("content")
+                elif isinstance(msg, str):
+                    content = msg
+
+            if not content:
+                msg = res_data.get("message")
+                if isinstance(msg, dict):
+                    content = msg.get("content")
+                elif isinstance(msg, str):
+                    content = msg
+
+            if not content:
+                content = res_data.get("text")
+
+            if not content:
+                content = res_data.get("content")
+
+        if isinstance(content, (dict, list)):
+            content = json.dumps(content)
+
+        if content is None or not str(content).strip():
+            raise RuntimeError("Puter API returned empty response or content was invalid.")
+
+        return str(content)
+
     else:
         # Default provider: ollama
         try:
@@ -136,3 +209,4 @@ def call_llm_provider(
             content = str(response)
 
         return content or ""
+

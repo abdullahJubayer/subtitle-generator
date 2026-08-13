@@ -188,7 +188,7 @@ class TestGUIComponents(unittest.TestCase):
         self.assertEqual(self.app.api_key_edit.echoMode(), QLineEdit.EchoMode.Password)
         self.assertEqual(
             self.app.api_key_edit.placeholderText(),
-            "Enter API Key (or set GEMINI_API_KEY env var)",
+            "Enter Gemini API Key (or set GEMINI_API_KEY env var)",
         )
 
         # Switch to Gemini Cloud provider
@@ -247,6 +247,45 @@ class TestGUIComponents(unittest.TestCase):
                 llm_provider="gemini",
                 api_key="cloud-api-key-xyz",
             )
+
+    def test_puter_provider_selection(self):
+        """Verify selecting Puter provider shows API key field with Puter placeholder and populates Puter models."""
+        from src.gui.app import PUTER_MODELS
+
+        self.app.provider_combo.setCurrentText("Puter.js AI (Cloud)")
+        self.assertTrue(self.app.api_key_container.isVisible())
+        self.assertFalse(self.app.api_key_container.isHidden())
+        self.assertEqual(
+            self.app.api_key_edit.placeholderText(),
+            "Enter Puter API Key (optional / set PUTER_API_KEY env var)",
+        )
+        self.assertEqual(self.app.ollama_combo.currentText(), "gpt-4o-mini")
+        puter_items = [self.app.ollama_combo.itemText(i) for i in range(self.app.ollama_combo.count())]
+        self.assertEqual(puter_items, PUTER_MODELS)
+
+    def test_start_pipeline_passes_puter_provider(self):
+        """Verify _on_start_pipeline extracts llm_provider='puter' and passes provider to PipelineWorker."""
+        self.app.file_path_edit.setText("/tmp/sample.mp4")
+        self.app.provider_combo.setCurrentText("Puter.js AI (Cloud)")
+        self.app.api_key_edit.setText("puter-secret-key-456")
+
+        with patch("os.path.exists", return_value=True), \
+             patch("src.gui.app.PipelineWorker") as mock_worker_cls:
+            mock_worker_instance = MagicMock()
+            mock_worker_cls.return_value = mock_worker_instance
+
+            self.app._on_start_pipeline()
+
+            mock_worker_cls.assert_called_once_with(
+                video_path="/tmp/sample.mp4",
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="gpt-4o-mini",
+                target_language="English",
+                llm_provider="puter",
+                api_key="puter-secret-key-456",
+            )
+            mock_worker_instance.start.assert_called_once()
 
     def test_browse_file_selection(self):
         """Verify QFileDialog file selection updates file_path_edit."""
@@ -345,6 +384,24 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="gemini",
                 api_key="my-gemini-key",
+            )
+
+    def test_main_cli_puter_provider_flag(self):
+        """Verify main.py CLI accepts --llm-provider puter and passes to run_pipeline."""
+        with patch("sys.argv", ["main.py", "-i", "/tmp/sample.mp4", "--llm-provider", "puter"]), \
+             patch("src.orchestration.pipeline.run_pipeline", return_value="/tmp/sample.srt") as mock_run, \
+             patch("main.setup_logging"):
+            res = main.main()
+            self.assertEqual(res, 0)
+            mock_run.assert_called_once_with(
+                video_path="/tmp/sample.mp4",
+                output_path=None,
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="llama3.2:3b",
+                target_language="English",
+                llm_provider="puter",
+                api_key=None,
             )
 
 

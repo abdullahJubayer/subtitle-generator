@@ -67,9 +67,9 @@ def main() -> int:
     )
     parser.add_argument(
         "--llm-provider",
-        choices=["ollama", "gemini"],
+        choices=["ollama", "gemini", "puter"],
         default="ollama",
-        help="LLM provider for grammar correction/translation ('ollama' or 'gemini', default: 'ollama')",
+        help="LLM provider for grammar correction/translation ('ollama', 'gemini', or 'puter', default: 'ollama')",
     )
     parser.add_argument(
         "--api-key",

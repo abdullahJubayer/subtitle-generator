@@ -114,6 +114,14 @@ QCheckBox {
 
 
 GEMINI_MODELS = ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"]
+PUTER_MODELS = [
+    "gpt-4o-mini",
+    "gpt-4o",
+    "claude-3-5-sonnet",
+    "claude-3-haiku",
+    "deepseek-chat",
+    "gemini-1.5-flash",
+]
 DEFAULT_OLLAMA_MODELS = ["llama3.2:3b", "llama3.1", "mistral", "gemma2", "phi3"]
 
 
@@ -242,7 +250,11 @@ class SubtitleGeneratorApp(QMainWindow):
         provider_label = QLabel("LLM Provider:")
         provider_label.setFixedWidth(120)
         self.provider_combo = QComboBox()
-        self.provider_combo.addItems(["Local (Ollama)", "Google Gemini (Cloud)"])
+        self.provider_combo.addItems([
+            "Local (Ollama)",
+            "Google Gemini (Cloud)",
+            "Puter.js AI (Cloud)",
+        ])
         self.provider_combo.setCurrentText("Local (Ollama)")
         provider_layout.addWidget(provider_label)
         provider_layout.addWidget(self.provider_combo)
@@ -352,11 +364,15 @@ class SubtitleGeneratorApp(QMainWindow):
     def _on_provider_changed(self, index: int = 0) -> None:
         """Handler when LLM Provider selection changes."""
         provider_text = self.provider_combo.currentText()
-        is_cloud = "Gemini" in provider_text or "Cloud" in provider_text
+        is_puter = "Puter" in provider_text
+        is_gemini = "Gemini" in provider_text
 
         current_model = self.ollama_combo.currentText()
         self.ollama_combo.clear()
-        if is_cloud:
+        if is_puter:
+            self.ollama_combo.addItems(PUTER_MODELS)
+            self.ollama_combo.setCurrentText("gpt-4o-mini")
+        elif is_gemini:
             self.ollama_combo.addItems(GEMINI_MODELS)
             self.ollama_combo.setCurrentText("gemini-2.5-flash")
         else:
@@ -372,18 +388,30 @@ class SubtitleGeneratorApp(QMainWindow):
         """Dynamically update visibility of LLM setting fields based on toggle state and selected provider."""
         llm_enabled = self.enable_llm_check.isChecked()
         provider_text = self.provider_combo.currentText()
-        is_cloud = "Gemini" in provider_text or "Cloud" in provider_text
+        is_puter = "Puter" in provider_text
+        is_gemini = "Gemini" in provider_text
+        is_cloud = is_puter or is_gemini or ("Cloud" in provider_text)
 
         self.provider_container.setVisible(llm_enabled)
         self.ollama_container.setVisible(llm_enabled)
         self.api_key_container.setVisible(llm_enabled and is_cloud)
+
+        if is_puter:
+            self.api_key_edit.setPlaceholderText(
+                "Enter Puter API Key (optional / set PUTER_API_KEY env var)"
+            )
+        else:
+            self.api_key_edit.setPlaceholderText(
+                "Enter Gemini API Key (or set GEMINI_API_KEY env var)"
+            )
 
     def _on_ollama_models_fetched(self, models: list[str]) -> None:
         """Callback handling async background discovery of local Ollama models."""
         if not models:
             return
         self._ollama_models = models
-        if "Gemini" not in self.provider_combo.currentText() and "Cloud" not in self.provider_combo.currentText():
+        provider_text = self.provider_combo.currentText()
+        if "Gemini" not in provider_text and "Puter" not in provider_text and "Cloud" not in provider_text:
             current = self.ollama_combo.currentText()
             self.ollama_combo.clear()
             self.ollama_combo.addItems(models)
@@ -484,7 +512,12 @@ class SubtitleGeneratorApp(QMainWindow):
         skip_grammar = not self.enable_llm_check.isChecked()
 
         provider_text = self.provider_combo.currentText()
-        llm_provider = "gemini" if ("Gemini" in provider_text or "Cloud" in provider_text) else "ollama"
+        if "Puter" in provider_text:
+            llm_provider = "puter"
+        elif "Gemini" in provider_text or "Cloud" in provider_text:
+            llm_provider = "gemini"
+        else:
+            llm_provider = "ollama"
         api_key = self.api_key_edit.text().strip() or None
 
         # Spawn pipeline worker thread
