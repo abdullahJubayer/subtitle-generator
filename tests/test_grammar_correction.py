@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 from src.grammar_correction.corrector import correct_grammar
 from src.grammar_correction.llm_providers import call_llm_provider
-from src.schemas import SegmentDict, SubtitleResponse, SubtitleSegment
+from src.schemas import SegmentDict
 
 
 class TestGrammarCorrection(unittest.TestCase):

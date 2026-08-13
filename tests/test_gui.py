@@ -1,19 +1,18 @@
 """Unit tests for PyQt6 GUI components and main.py GUI CLI flag integration."""
 
 import os
-import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
 from PyQt6.QtWidgets import QApplication
 
+import main
+from src.gui.app import SubtitleGeneratorApp
+from src.gui.player import VideoPlayerWidget, parse_srt_time
+from src.gui.worker import PipelineWorker
+
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 _app = QApplication.instance() or QApplication([])
-
-from src.gui.app import SubtitleGeneratorApp
-from src.gui.player import VideoPlayerWidget, parse_srt, parse_srt_time
-from src.gui.worker import PipelineWorker, QLogHandler
-import main
 
 
 class TestGUIComponents(unittest.TestCase):

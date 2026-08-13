@@ -1,10 +1,11 @@
 """Shared Pydantic data schemas and type aliases for Subtitle Generator pipeline."""
 
-from typing import Any, Literal, TypedDict
+from typing import Literal, TypedDict
 from pydantic import BaseModel, Field
 
 # Type Aliases
 WhisperModelSize = Literal["tiny", "base", "small", "medium", "large"]
+
 
 class SegmentDict(TypedDict):
     """Standardized dictionary layout passed between pipeline modules."""
