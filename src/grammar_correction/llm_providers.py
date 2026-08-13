@@ -142,6 +142,11 @@ def call_llm_provider(
                             config=config,
                         )
                         if response:
+                            logger.warning(
+                                "⚠️ Model '%s' is unavailable or deprecated. Automatically switched to working model '%s'. Please select a valid model in the dropdown.",
+                                model_name,
+                                fb_model,
+                            )
                             break
                     except Exception:
                         continue

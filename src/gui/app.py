@@ -557,6 +557,7 @@ class SubtitleGeneratorApp(QMainWindow):
         self.whisper_console.clear_log()
         self.llm_console.clear()
         self.srt_console.set_srt_content("")
+        self._llm_warning_notice = None
 
         # Gather settings
         model_size = self.model_combo.currentText()
@@ -609,6 +610,8 @@ class SubtitleGeneratorApp(QMainWindow):
 
     def _on_log_emitted(self, msg: str):
         self.whisper_console.append_log(msg)
+        if "Automatically switched" in msg or "Grammar correction failed" in msg:
+            self._llm_warning_notice = msg
 
     def _on_pipeline_finished(self, video_path: str, srt_path: str):
         self._set_controls_enabled(True)
@@ -631,11 +634,18 @@ class SubtitleGeneratorApp(QMainWindow):
         self.video_player.load_video(video_path, srt_path)
         self.video_player.play()
 
-        QMessageBox.information(
-            self,
-            "Pipeline Complete",
-            f"✨ Subtitle generation complete!\n\nSubtitles auto-loaded into player.\nClick '💾 Export / Save .SRT File' to save it to your computer.\n\nFile location: {srt_path}",
-        )
+        if getattr(self, "_llm_warning_notice", None):
+            QMessageBox.warning(
+                self,
+                "⚠️ LLM Model Warning / Auto-Switch",
+                f"{self._llm_warning_notice}\n\nSubtitles were generated successfully. You can select a different model in the LLM Model dropdown if desired.\n\nFile location: {srt_path}",
+            )
+        else:
+            QMessageBox.information(
+                self,
+                "Pipeline Complete",
+                f"✨ Subtitle generation complete!\n\nSubtitles auto-loaded into player.\nClick '💾 Export / Save .SRT File' to save it to your computer.\n\nFile location: {srt_path}",
+            )
 
     def _on_export_srt(self) -> None:
         """Export/save the generated .srt file to user selected path."""
