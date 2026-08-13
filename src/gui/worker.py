@@ -70,6 +70,8 @@ class PipelineWorker(QThread):
         skip_grammar: bool = False,
         ollama_model: str = "llama3.2:3b",
         target_language: str = "English",
+        llm_provider: str = "ollama",
+        api_key: Optional[str] = None,
         parent: Optional[QObject] = None,
     ) -> None:
         super().__init__(parent)
@@ -79,6 +81,8 @@ class PipelineWorker(QThread):
         self.skip_grammar = skip_grammar
         self.ollama_model = ollama_model
         self.target_language = target_language
+        self.llm_provider = llm_provider
+        self.api_key = api_key
 
     def run(self) -> None:
         """Execute the pipeline in a separate thread."""
@@ -105,6 +109,8 @@ class PipelineWorker(QThread):
                 skip_grammar=self.skip_grammar,
                 ollama_model=self.ollama_model,
                 target_language=self.target_language,
+                llm_provider=self.llm_provider,
+                api_key=self.api_key,
             )
             self.progress_updated.emit(100, "Pipeline executed successfully!")
             self.progress_changed.emit(100, "Pipeline executed successfully!")

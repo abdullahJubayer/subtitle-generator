@@ -93,6 +93,8 @@ class TestGUIComponents(unittest.TestCase):
                 skip_grammar=False,
                 ollama_model=self.app.ollama_combo.currentText(),
                 target_language="English",
+                llm_provider="ollama",
+                api_key=None,
             )
 
             mock_worker_cls.reset_mock()
@@ -106,6 +108,8 @@ class TestGUIComponents(unittest.TestCase):
                 skip_grammar=True,
                 ollama_model=self.app.ollama_combo.currentText(),
                 target_language="English",
+                llm_provider="ollama",
+                api_key=None,
             )
 
     def test_custom_ollama_model_string_passing(self):
@@ -128,6 +132,8 @@ class TestGUIComponents(unittest.TestCase):
                 skip_grammar=False,
                 ollama_model=custom_model,
                 target_language="English",
+                llm_provider="ollama",
+                api_key=None,
             )
             mock_worker_instance.start.assert_called_once()
 
@@ -148,6 +154,8 @@ class TestGUIComponents(unittest.TestCase):
                 skip_grammar=False,
                 ollama_model=self.app.ollama_combo.currentText(),
                 target_language="Spanish",
+                llm_provider="ollama",
+                api_key=None,
             )
             mock_worker_instance.start.assert_called_once()
 
@@ -166,6 +174,78 @@ class TestGUIComponents(unittest.TestCase):
                 skip_grammar=False,
                 ollama_model="llama3.2:3b",
                 target_language="Bangla (Bengali)",
+                llm_provider="ollama",
+                api_key=None,
+            )
+
+    def test_provider_selection_toggles_models_and_api_key_visibility(self):
+        """Verify selecting Gemini Cloud provider shows API Key field and populates Gemini models."""
+        from PyQt6.QtWidgets import QLineEdit
+
+        # Default Local Ollama provider
+        self.assertEqual(self.app.provider_combo.currentText(), "Local (Ollama)")
+        self.assertTrue(self.app.api_key_container.isHidden())
+        self.assertEqual(self.app.api_key_edit.echoMode(), QLineEdit.EchoMode.Password)
+        self.assertEqual(
+            self.app.api_key_edit.placeholderText(),
+            "Enter API Key (or set GEMINI_API_KEY env var)",
+        )
+
+        # Switch to Gemini Cloud provider
+        self.app.provider_combo.setCurrentText("Google Gemini (Cloud)")
+        self.assertTrue(self.app.api_key_container.isVisible())
+        self.assertFalse(self.app.api_key_container.isHidden())
+        self.assertEqual(self.app.ollama_combo.currentText(), "gemini-2.5-flash")
+        gemini_items = [self.app.ollama_combo.itemText(i) for i in range(self.app.ollama_combo.count())]
+        self.assertEqual(gemini_items, ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"])
+
+        # Switch back to Local Ollama provider
+        self.app.provider_combo.setCurrentText("Local (Ollama)")
+        self.assertTrue(self.app.api_key_container.isHidden())
+        self.assertIn("llama3.2:3b", [self.app.ollama_combo.itemText(i) for i in range(self.app.ollama_combo.count())])
+
+    def test_start_pipeline_passes_llm_provider_and_api_key(self):
+        """Verify _on_start_pipeline extracts llm_provider='gemini' and api_key correctly."""
+        self.app.file_path_edit.setText("/tmp/sample.mp4")
+        self.app.provider_combo.setCurrentText("Google Gemini (Cloud)")
+        self.app.api_key_edit.setText("test-secret-key-123")
+
+        with patch("os.path.exists", return_value=True), \
+             patch("src.gui.app.PipelineWorker") as mock_worker_cls:
+            mock_worker_instance = MagicMock()
+            mock_worker_cls.return_value = mock_worker_instance
+
+            self.app._on_start_pipeline()
+
+            mock_worker_cls.assert_called_once_with(
+                video_path="/tmp/sample.mp4",
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="gemini-2.5-flash",
+                target_language="English",
+                llm_provider="gemini",
+                api_key="test-secret-key-123",
+            )
+            mock_worker_instance.start.assert_called_once()
+
+    def test_worker_passes_llm_provider_and_api_key(self):
+        """Verify PipelineWorker passes llm_provider and api_key to run_pipeline."""
+        worker = PipelineWorker(
+            video_path="/tmp/test.mp4",
+            llm_provider="gemini",
+            api_key="cloud-api-key-xyz",
+        )
+        with patch("src.gui.worker.run_pipeline", return_value="/tmp/test.srt") as mock_run:
+            worker.run()
+            mock_run.assert_called_once_with(
+                video_path="/tmp/test.mp4",
+                output_path=None,
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="llama3.2:3b",
+                target_language="English",
+                llm_provider="gemini",
+                api_key="cloud-api-key-xyz",
             )
 
     def test_browse_file_selection(self):
@@ -245,6 +325,26 @@ class TestGUIComponents(unittest.TestCase):
                 skip_grammar=False,
                 ollama_model="llama3.2:3b",
                 target_language="French",
+                llm_provider="ollama",
+                api_key=None,
+            )
+
+    def test_main_cli_llm_provider_and_api_key_flags(self):
+        """Verify main.py CLI accepts --llm-provider and --api-key flags and passes to run_pipeline."""
+        with patch("sys.argv", ["main.py", "-i", "/tmp/sample.mp4", "--llm-provider", "gemini", "--api-key", "my-gemini-key"]), \
+             patch("src.orchestration.pipeline.run_pipeline", return_value="/tmp/sample.srt") as mock_run, \
+             patch("main.setup_logging"):
+            res = main.main()
+            self.assertEqual(res, 0)
+            mock_run.assert_called_once_with(
+                video_path="/tmp/sample.mp4",
+                output_path=None,
+                model_size="small",
+                skip_grammar=False,
+                ollama_model="llama3.2:3b",
+                target_language="English",
+                llm_provider="gemini",
+                api_key="my-gemini-key",
             )
 
 

@@ -66,6 +66,17 @@ def main() -> int:
         help="Local Ollama LLM model name for grammar correction (default: llama3.2:3b)",
     )
     parser.add_argument(
+        "--llm-provider",
+        choices=["ollama", "gemini"],
+        default="ollama",
+        help="LLM provider for grammar correction/translation ('ollama' or 'gemini', default: 'ollama')",
+    )
+    parser.add_argument(
+        "--api-key",
+        default=None,
+        help="API key for cloud LLM provider (e.g. Gemini API key)",
+    )
+    parser.add_argument(
         "--skip-grammar",
         action="store_true",
         help="Skip LLM grammar correction stage",
@@ -103,6 +114,8 @@ def main() -> int:
             skip_grammar=args.skip_grammar,
             ollama_model=args.ollama_model,
             target_language=args.target_language,
+            llm_provider=args.llm_provider,
+            api_key=args.api_key,
         )
         print(f"\n✨ Subtitle generation complete! File saved at:\n   {output_srt}")
         return 0

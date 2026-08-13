@@ -1,4 +1,6 @@
 faster-whisper
+google-genai
 ollama
 pydantic
 PyQt6
+

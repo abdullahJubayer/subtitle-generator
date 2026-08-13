@@ -20,6 +20,8 @@ def run_pipeline(
     skip_grammar: bool = False,
     ollama_model: str = "llama3.2:3b",
     target_language: str = "English",
+    llm_provider: str = "ollama",
+    api_key: str | None = None,
 ) -> str:
     """Run the complete Video-to-Subtitle pipeline.
 
@@ -28,8 +30,10 @@ def run_pipeline(
         output_path: Path for output .srt file (optional, defaults to video stem + .srt).
         model_size: Whisper model size (default "small").
         skip_grammar: If True, bypasses LLM grammar correction.
-        ollama_model: Ollama model name to use for grammar correction.
+        ollama_model: LLM model name to use for grammar correction.
         target_language: Target language for translation/correction (default "English").
+        llm_provider: LLM provider name ("ollama" or "gemini", default "ollama").
+        api_key: Optional API key for cloud provider (e.g. Gemini).
 
     Returns:
         Absolute path to the generated .srt file.
@@ -67,12 +71,17 @@ def run_pipeline(
         # Step 3: Grammar Correction (Module C)
         if not skip_grammar:
             logger.info(
-                "[Step 3/4] Correcting grammar with Ollama ('%s', target='%s')...",
+                "[Step 3/4] Correcting grammar with provider '%s' (model='%s', target='%s')...",
+                llm_provider,
                 ollama_model,
                 target_language,
             )
             segments = correct_grammar(
-                segments, model_name=ollama_model, target_language=target_language
+                segments,
+                model_name=ollama_model,
+                target_language=target_language,
+                provider=llm_provider,
+                api_key=api_key,
             )
         else:
             logger.info("[Step 3/4] Skipping LLM grammar correction as requested.")

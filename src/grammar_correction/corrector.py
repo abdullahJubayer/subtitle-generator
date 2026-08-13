@@ -1,6 +1,6 @@
 import json
 import logging
-import ollama
+from src.grammar_correction.llm_providers import call_llm_provider
 from src.grammar_correction.prompts import build_system_prompt
 from src.schemas import SegmentDict, SubtitleResponse, SubtitleSegment
 
@@ -11,13 +11,17 @@ def correct_grammar(
     segments: list[SegmentDict],
     model_name: str = "llama3.2:3b",
     target_language: str = "English",
+    provider: str = "ollama",
+    api_key: str | None = None,
 ) -> list[SegmentDict]:
-    """Correct the grammar of subtitle text segments or translate them using Ollama LLM.
+    """Correct the grammar of subtitle text segments or translate them using LLM provider.
 
     Args:
         segments: List of segment dictionaries with keys 'id', 'start', 'end', 'text'.
-        model_name: Ollama LLM model name to use for grammar correction/translation.
+        model_name: LLM model name to use for grammar correction/translation.
         target_language: Target language for translation/correction (default "English").
+        provider: LLM provider name ("ollama" or "gemini", default "ollama").
+        api_key: API key for cloud LLM provider (optional).
 
     Returns:
         A list of segment dictionaries with updated 'text' fields.
@@ -36,17 +40,19 @@ def correct_grammar(
 
     if is_translation:
         logger.info(
-            "[Step 3/4] 🌐 Starting LLM natural translation into '%s' (%d segments in %d batch(es)) using model '%s'...",
+            "[Step 3/4] 🌐 Starting LLM natural translation into '%s' (%d segments in %d batch(es)) using provider '%s' (model '%s')...",
             target_language,
             len(segments),
             total_batches,
+            provider,
             model_name,
         )
     else:
         logger.info(
-            "[Step 3/4] 🧠 Starting LLM English grammar correction (%d segments in %d batch(es)) using model '%s'...",
+            "[Step 3/4] 🧠 Starting LLM English grammar correction (%d segments in %d batch(es)) using provider '%s' (model '%s')...",
             len(segments),
             total_batches,
+            provider,
             model_name,
         )
 
@@ -80,36 +86,12 @@ def correct_grammar(
                 {"role": "user", "content": json.dumps(payload)},
             ]
 
-            # Auto-detect available local model if specified model fails or is missing
-            try:
-                response = ollama.chat(
-                    model=model_name,
-                    format=SubtitleResponse.model_json_schema(),
-                    messages=messages,
-                )
-            except ollama.ResponseError as err:
-                if err.status_code == 404:
-                    available = ollama.list()
-                    models_list = getattr(available, "models", []) or available.get("models", [])
-                    if models_list:
-                        first_model = models_list[0].model if hasattr(models_list[0], "model") else models_list[0].get("name", "")
-                        logger.info("Model '%s' not found. Auto-switching to locally installed model '%s'", model_name, first_model)
-                        model_name = first_model
-                        response = ollama.chat(
-                            model=model_name,
-                            format=SubtitleResponse.model_json_schema(),
-                            messages=messages,
-                        )
-                    else:
-                        raise
-                else:
-                    raise
-
-            content = ""
-            if hasattr(response, "message") and hasattr(response.message, "content"):
-                content = response.message.content
-            elif isinstance(response, dict):
-                content = response.get("message", {}).get("content", "")
+            content = call_llm_provider(
+                provider=provider,
+                model_name=model_name,
+                messages=messages,
+                api_key=api_key,
+            )
 
             if content:
                 parsed_response = SubtitleResponse.model_validate_json(content)
@@ -123,7 +105,7 @@ def correct_grammar(
                 )
             else:
                 logger.warning(
-                    f"Ollama returned empty content for batch {batch_index}/{total_batches}."
+                    f"LLM provider '{provider}' returned empty content for batch {batch_index}/{total_batches}."
                 )
 
         except Exception as e:
