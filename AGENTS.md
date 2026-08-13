@@ -50,6 +50,14 @@ Use the standard Python `subprocess` module. Do not use heavy wrapper libraries 
 4. Raise a `RuntimeError` if the subprocess fails.
 5. Return the absolute path to the extracted audio file.
 
+#### `skills/ui-design/SKILL.md`
+```markdown
+---
+name: ui-design
+description: Standardized UI/UX design system and QSS styling guidelines for building premium, modern Desktop GUI components. Use when designing, styling, or refactoring user interfaces.
+---
+```
+
 ---
 
 ## Subagent Team Roles & Model Configuration
