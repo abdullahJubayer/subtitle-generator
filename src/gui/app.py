@@ -398,23 +398,17 @@ class SubtitleGeneratorApp(QMainWindow):
         progress_layout.addWidget(self.progress_bar)
         setup_left_layout.addWidget(progress_group)
 
-        # Console Tab Widget (Interactive Studio, Whisper Log, LLM Output, SRT Preview)
+        # Console Tab Widget for Setup Page (Whisper Log, LLM Output, SRT Preview)
         self.console_tabs = QTabWidget()
 
-        self.studio_table = InteractiveSubtitleTableWidget()
         self.whisper_console = WhisperConsoleWidget()
         self.llm_console = LlmConsoleWidget()
         self.llm_console_widget = self.llm_console
         self.srt_console = SrtConsoleWidget()
 
-        self.console_tabs.addTab(self.studio_table, "Interactive Studio")
         self.console_tabs.addTab(self.whisper_console, "Whisper Log")
         self.console_tabs.addTab(self.llm_console, "LLM Telemetry & Diffs")
         self.console_tabs.addTab(self.srt_console, "SRT Preview")
-
-        self.studio_table.convert_requested.connect(self._on_single_convert_requested)
-        self.studio_table.convert_all_requested.connect(self._on_convert_all_requested)
-        self.studio_table.segments_changed.connect(self._on_studio_segments_changed)
 
         self.log_console = self.whisper_console.log_area
 
@@ -452,6 +446,10 @@ class SubtitleGeneratorApp(QMainWindow):
         studio_layout.addLayout(studio_header_layout)
 
         # Prominent Studio Table occupying full screen area
+        self.studio_table = InteractiveSubtitleTableWidget()
+        self.studio_table.convert_requested.connect(self._on_single_convert_requested)
+        self.studio_table.convert_all_requested.connect(self._on_convert_all_requested)
+        self.studio_table.segments_changed.connect(self._on_studio_segments_changed)
         studio_layout.addWidget(self.studio_table, stretch=1)
 
         # Bottom Bar: Large Build & Load .SRT action button
