@@ -187,15 +187,11 @@ class TestGUIComponents(unittest.TestCase):
         self.assertEqual(self.app.provider_combo.currentText(), "Local (Ollama)")
         self.assertTrue(self.app.api_key_container.isHidden())
         self.assertEqual(self.app.api_key_edit.echoMode(), QLineEdit.EchoMode.Password)
-        self.assertEqual(
-            self.app.api_key_edit.placeholderText(),
-            "Enter Gemini API Key (or set GEMINI_API_KEY env var)",
-        )
+        self.assertIn("Loaded automatically", self.app.api_key_edit.placeholderText())
 
         # Switch to Gemini Cloud provider
         self.app.provider_combo.setCurrentText("Google Gemini (Cloud)")
-        self.assertTrue(self.app.api_key_container.isVisible())
-        self.assertFalse(self.app.api_key_container.isHidden())
+        self.assertTrue(self.app.api_key_container.isHidden())
         self.assertEqual(self.app.ollama_combo.currentText(), "gemini-2.5-flash")
         gemini_items = [self.app.ollama_combo.itemText(i) for i in range(self.app.ollama_combo.count())]
         self.assertIn("gemini-2.5-flash", gemini_items)
@@ -255,12 +251,7 @@ class TestGUIComponents(unittest.TestCase):
         from src.gui.app import PUTER_MODELS
 
         self.app.provider_combo.setCurrentText("Puter.js AI (Cloud)")
-        self.assertTrue(self.app.api_key_container.isVisible())
-        self.assertFalse(self.app.api_key_container.isHidden())
-        self.assertEqual(
-            self.app.api_key_edit.placeholderText(),
-            "Enter Puter API Key (or set PUTER_API_KEY env var)",
-        )
+        self.assertTrue(self.app.api_key_container.isHidden())
         self.assertEqual(self.app.ollama_combo.currentText(), "gpt-4o-mini")
         puter_items = [self.app.ollama_combo.itemText(i) for i in range(self.app.ollama_combo.count())]
         self.assertEqual(puter_items, PUTER_MODELS)

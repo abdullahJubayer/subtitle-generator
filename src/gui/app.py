@@ -305,7 +305,7 @@ class SubtitleGeneratorApp(QMainWindow):
         ollama_layout.addWidget(self.ollama_combo)
         settings_layout.addWidget(self.ollama_container)
 
-        # Container Widget for API Key Field (Conditional for Cloud Provider)
+        # Container Widget for API Key Field (Automated via .env)
         self.api_key_container = QWidget()
         api_key_layout = QHBoxLayout(self.api_key_container)
         api_key_layout.setContentsMargins(0, 0, 0, 0)
@@ -316,11 +316,11 @@ class SubtitleGeneratorApp(QMainWindow):
         env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("PUTER_API_KEY") or ""
         if env_key:
             self.api_key_edit.setText(env_key)
-        self.api_key_edit.setPlaceholderText("Enter API Key (or set GEMINI_API_KEY env var)")
+        self.api_key_edit.setPlaceholderText("Loaded automatically from .env file")
         self.api_key_edit.textChanged.connect(self._on_api_key_changed)
         api_key_layout.addWidget(api_key_label)
         api_key_layout.addWidget(self.api_key_edit)
-        settings_layout.addWidget(self.api_key_container)
+        # Note: self.api_key_container is intentionally NOT added to settings_layout to keep the UI clean.
 
         self.provider_combo.currentIndexChanged.connect(self._on_provider_changed)
         self.enable_llm_check.toggled.connect(self._update_llm_visibility)
@@ -448,25 +448,12 @@ class SubtitleGeneratorApp(QMainWindow):
                 self.ollama_combo.setCurrentText(gemini_models[0])
 
     def _update_llm_visibility(self) -> None:
-        """Dynamically update visibility of LLM setting fields based on toggle state and selected provider."""
+        """Dynamically update visibility of LLM setting fields based on toggle state."""
         llm_enabled = self.enable_llm_check.isChecked()
-        provider_text = self.provider_combo.currentText()
-        is_puter = "Puter" in provider_text
-        is_gemini = "Gemini" in provider_text
-        is_cloud = is_puter or is_gemini or ("Cloud" in provider_text)
 
         self.provider_container.setVisible(llm_enabled)
         self.ollama_container.setVisible(llm_enabled)
-        self.api_key_container.setVisible(llm_enabled and is_cloud)
-
-        if is_puter:
-            self.api_key_edit.setPlaceholderText(
-                "Enter Puter API Key (or set PUTER_API_KEY env var)"
-            )
-        else:
-            self.api_key_edit.setPlaceholderText(
-                "Enter Gemini API Key (or set GEMINI_API_KEY env var)"
-            )
+        self.api_key_container.setVisible(False)
 
     def _on_ollama_models_fetched(self, models: list[str]) -> None:
         """Callback handling async background discovery of local Ollama models."""
