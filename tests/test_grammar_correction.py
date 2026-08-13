@@ -1,4 +1,6 @@
+import json
 import os
+import urllib.error
 import unittest
 from unittest.mock import MagicMock, patch
 from src.grammar_correction.corrector import correct_grammar
@@ -216,6 +218,212 @@ class TestGrammarCorrection(unittest.TestCase):
             else:
                 os.environ.pop("GEMINI_API_KEY", None)
 
+    @patch("urllib.request.urlopen")
+    def test_call_llm_provider_puter_success_choices(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "choices": [{"message": {"content": '{"segments": [{"id": 1, "text": "Hello Puter!"}]}'}}]
+        }).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        messages = [{"role": "user", "content": "hi"}]
+        result = call_llm_provider(
+            provider="puter",
+            model_name="gpt-4o-mini",
+            messages=messages,
+            api_key="puter-test-key",
+        )
+
+        self.assertEqual(result, '{"segments": [{"id": 1, "text": "Hello Puter!"}]}')
+        mock_urlopen.assert_called_once()
+        req = mock_urlopen.call_args[0][0]
+        self.assertEqual(req.full_url, "https://api.puter.com/v2/ai/chat")
+        self.assertEqual(req.get_header("Authorization"), "Bearer puter-test-key")
+        self.assertEqual(req.get_header("X-puter-api-key"), "puter-test-key")
+
+    @patch("urllib.request.urlopen")
+    def test_call_llm_provider_puter_success_message_content(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "message": {"content": "Response content"}
+        }).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        messages = [{"role": "user", "content": "hi"}]
+        result = call_llm_provider(
+            provider="puter",
+            model_name="gpt-4o-mini",
+            messages=messages,
+            api_key="puter-test-key",
+        )
+        self.assertEqual(result, "Response content")
+
+    @patch("urllib.request.urlopen")
+    def test_call_llm_provider_puter_success_text(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "text": "Text content"
+        }).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        messages = [{"role": "user", "content": "hi"}]
+        result = call_llm_provider(
+            provider="puter",
+            model_name="gpt-4o-mini",
+            messages=messages,
+            api_key="puter-test-key",
+        )
+        self.assertEqual(result, "Text content")
+
+    @patch("urllib.request.urlopen")
+    def test_call_llm_provider_puter_default_model(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "choices": [{"message": {"content": "ok"}}]
+        }).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        messages = [{"role": "user", "content": "hi"}]
+        call_llm_provider(
+            provider="puter",
+            model_name="llama3.2:3b",
+            messages=messages,
+            api_key="puter-test-key",
+        )
+        req = mock_urlopen.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body["model"], "gpt-4o-mini")
+
+    def test_call_llm_provider_puter_missing_api_key(self):
+        messages = [{"role": "user", "content": "hi"}]
+        env_backup = os.environ.get("PUTER_API_KEY")
+        if "PUTER_API_KEY" in os.environ:
+            del os.environ["PUTER_API_KEY"]
+
+        try:
+            with self.assertRaises(ValueError) as ctx:
+                call_llm_provider(
+                    provider="puter",
+                    model_name="gpt-4o-mini",
+                    messages=messages,
+                    api_key=None,
+                )
+            self.assertIn("Puter API key is missing", str(ctx.exception))
+        finally:
+            if env_backup:
+                os.environ["PUTER_API_KEY"] = env_backup
+
+    @patch("urllib.request.urlopen")
+    def test_call_llm_provider_puter_env_key(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "choices": [{"message": {"content": "ok"}}]
+        }).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        messages = [{"role": "user", "content": "hi"}]
+        env_backup = os.environ.get("PUTER_API_KEY")
+        os.environ["PUTER_API_KEY"] = "env-puter-key"
+
+        try:
+            call_llm_provider(
+                provider="puter",
+                model_name="gpt-4o-mini",
+                messages=messages,
+            )
+            req = mock_urlopen.call_args[0][0]
+            self.assertEqual(req.get_header("Authorization"), "Bearer env-puter-key")
+            self.assertEqual(req.get_header("X-puter-api-key"), "env-puter-key")
+        finally:
+            if env_backup is not None:
+                os.environ["PUTER_API_KEY"] = env_backup
+            else:
+                os.environ.pop("PUTER_API_KEY", None)
+
+    @patch("urllib.request.urlopen")
+    def test_call_llm_provider_puter_api_failure(self, mock_urlopen):
+        mock_urlopen.side_effect = urllib.error.HTTPError(
+            url="https://api.puter.com/v2/ai/chat",
+            code=500,
+            msg="Internal Server Error",
+            hdrs={},
+            fp=MagicMock(read=lambda: b"Server error"),
+        )
+        messages = [{"role": "user", "content": "hi"}]
+        with self.assertRaises(RuntimeError) as ctx:
+            call_llm_provider(
+                provider="puter",
+                model_name="gpt-4o-mini",
+                messages=messages,
+                api_key="test-key",
+            )
+        self.assertIn("Puter API HTTP request failed", str(ctx.exception))
+
+    @patch("urllib.request.urlopen")
+    def test_call_llm_provider_puter_empty_response(self, mock_urlopen):
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps({
+            "choices": []
+        }).encode("utf-8")
+        mock_resp.__enter__.return_value = mock_resp
+        mock_urlopen.return_value = mock_resp
+
+        messages = [{"role": "user", "content": "hi"}]
+        with self.assertRaises(RuntimeError) as ctx:
+            call_llm_provider(
+                provider="puter",
+                model_name="gpt-4o-mini",
+                messages=messages,
+                api_key="test-key",
+            )
+        self.assertIn("Puter API returned empty response", str(ctx.exception))
+
+    @patch("src.grammar_correction.corrector.call_llm_provider")
+    def test_correct_grammar_puter_success(self, mock_call_llm):
+        mock_call_llm.return_value = '{"segments": [{"id": 1, "text": "Hello, Puter world!"}]}'
+
+        segments: list[SegmentDict] = [
+            {"id": 1, "start": 0.0, "end": 2.0, "text": "hello puter world"},
+        ]
+
+        result = correct_grammar(
+            segments,
+            model_name="gpt-4o-mini",
+            provider="puter",
+            api_key="test_puter_key",
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["text"], "Hello, Puter world!")
+        mock_call_llm.assert_called_once()
+        _, kwargs = mock_call_llm.call_args
+        self.assertEqual(kwargs["provider"], "puter")
+        self.assertEqual(kwargs["api_key"], "test_puter_key")
+
+    @patch("src.grammar_correction.corrector.call_llm_provider")
+    def test_correct_grammar_puter_failure_fallback(self, mock_call_llm):
+        mock_call_llm.side_effect = Exception("Puter API Network Error")
+
+        segments: list[SegmentDict] = [
+            {"id": 1, "start": 0.0, "end": 2.0, "text": "hello puter world"},
+        ]
+
+        result = correct_grammar(
+            segments,
+            model_name="gpt-4o-mini",
+            provider="puter",
+            api_key="invalid_key",
+        )
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["text"], "hello puter world")
+
 
 if __name__ == "__main__":
     unittest.main()
+
