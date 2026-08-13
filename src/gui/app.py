@@ -3,6 +3,9 @@
 import logging
 import os
 from typing import Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from PyQt6.QtCore import QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -24,6 +27,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from src.grammar_correction import get_available_gemini_models
 from src.gui.console_widgets import (
     LlmConsoleWidget,
     SrtConsoleWidget,
@@ -309,7 +313,11 @@ class SubtitleGeneratorApp(QMainWindow):
         api_key_label.setFixedWidth(120)
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("PUTER_API_KEY") or ""
+        if env_key:
+            self.api_key_edit.setText(env_key)
         self.api_key_edit.setPlaceholderText("Enter API Key (or set GEMINI_API_KEY env var)")
+        self.api_key_edit.textChanged.connect(self._on_api_key_changed)
         api_key_layout.addWidget(api_key_label)
         api_key_layout.addWidget(self.api_key_edit)
         settings_layout.addWidget(self.api_key_container)
@@ -409,8 +417,13 @@ class SubtitleGeneratorApp(QMainWindow):
             self.ollama_combo.addItems(PUTER_MODELS)
             self.ollama_combo.setCurrentText("gpt-4o-mini")
         elif is_gemini:
-            self.ollama_combo.addItems(GEMINI_MODELS)
-            self.ollama_combo.setCurrentText("gemini-2.5-flash")
+            key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
+            gemini_models = get_available_gemini_models(key)
+            self.ollama_combo.addItems(gemini_models)
+            if "gemini-2.5-flash" in gemini_models:
+                self.ollama_combo.setCurrentText("gemini-2.5-flash")
+            elif gemini_models:
+                self.ollama_combo.setCurrentText(gemini_models[0])
         else:
             self.ollama_combo.addItems(self._ollama_models)
             if current_model in self._ollama_models:
@@ -419,6 +432,20 @@ class SubtitleGeneratorApp(QMainWindow):
                 self.ollama_combo.setCurrentText("llama3.2:3b")
 
         self._update_llm_visibility()
+
+    def _on_api_key_changed(self, text: str) -> None:
+        """Handler when API key field text changes."""
+        provider_text = self.provider_combo.currentText()
+        if "Gemini" in provider_text:
+            key = text.strip() or os.environ.get("GEMINI_API_KEY")
+            gemini_models = get_available_gemini_models(key)
+            current = self.ollama_combo.currentText()
+            self.ollama_combo.clear()
+            self.ollama_combo.addItems(gemini_models)
+            if current in gemini_models:
+                self.ollama_combo.setCurrentText(current)
+            elif gemini_models:
+                self.ollama_combo.setCurrentText(gemini_models[0])
 
     def _update_llm_visibility(self) -> None:
         """Dynamically update visibility of LLM setting fields based on toggle state and selected provider."""

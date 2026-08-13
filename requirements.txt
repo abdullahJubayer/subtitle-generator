@@ -3,4 +3,5 @@ google-genai
 ollama
 pydantic
 PyQt6
+python-dotenv
 

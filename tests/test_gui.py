@@ -198,7 +198,7 @@ class TestGUIComponents(unittest.TestCase):
         self.assertFalse(self.app.api_key_container.isHidden())
         self.assertEqual(self.app.ollama_combo.currentText(), "gemini-2.5-flash")
         gemini_items = [self.app.ollama_combo.itemText(i) for i in range(self.app.ollama_combo.count())]
-        self.assertEqual(gemini_items, ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"])
+        self.assertIn("gemini-2.5-flash", gemini_items)
 
         # Switch back to Local Ollama provider
         self.app.provider_combo.setCurrentText("Local (Ollama)")

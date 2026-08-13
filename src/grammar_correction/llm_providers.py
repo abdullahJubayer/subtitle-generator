@@ -12,6 +12,57 @@ from src.schemas import SubtitleResponse
 logger = logging.getLogger(__name__)
 
 
+def get_available_gemini_models(api_key: str | None = None) -> list[str]:
+    """Dynamically fetch available Gemini models using google-genai or google.generativeai.
+
+    Args:
+        api_key: Optional API key. If None, reads from GEMINI_API_KEY env var.
+
+    Returns:
+        List of available Gemini model names.
+    """
+    key = api_key or os.environ.get("GEMINI_API_KEY")
+    if not key:
+        return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"]
+
+    fetched_models: list[str] = []
+    try:
+        from google import genai
+        client = genai.Client(api_key=key)
+        for m in client.models.list():
+            name = getattr(m, "name", "") or str(m)
+            clean_name = name.replace("models/", "")
+            if "gemini" in clean_name.lower():
+                fetched_models.append(clean_name)
+    except Exception as e:
+        logger.debug("Failed listing models with google.genai: %s", e)
+
+    if not fetched_models:
+        try:
+            import google.generativeai as genai_legacy
+            genai_legacy.configure(api_key=key)
+            for m in genai_legacy.list_models():
+                clean_name = m.name.replace("models/", "")
+                methods = getattr(m, "supported_generation_methods", [])
+                if "gemini" in clean_name.lower() and (not methods or "generateContent" in methods):
+                    fetched_models.append(clean_name)
+        except Exception as e:
+            logger.debug("Failed listing models with google.generativeai: %s", e)
+
+    if not fetched_models:
+        return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"]
+
+    # Deduplicate while preserving order
+    seen = set()
+    deduped = []
+    for m in fetched_models:
+        if m not in seen:
+            seen.add(m)
+            deduped.append(m)
+
+    return deduped
+
+
 def call_llm_provider(
     provider: str,
     model_name: str,

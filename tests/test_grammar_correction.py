@@ -4,7 +4,10 @@ import urllib.error
 import unittest
 from unittest.mock import MagicMock, patch
 from src.grammar_correction.corrector import correct_grammar
-from src.grammar_correction.llm_providers import call_llm_provider
+from src.grammar_correction.llm_providers import (
+    call_llm_provider,
+    get_available_gemini_models,
+)
 from src.schemas import SegmentDict
 
 
@@ -422,6 +425,13 @@ class TestGrammarCorrection(unittest.TestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["text"], "hello puter world")
+
+    def test_get_available_gemini_models(self):
+        """Verify get_available_gemini_models returns fallback or list of models."""
+        models = get_available_gemini_models()
+        self.assertIsInstance(models, list)
+        self.assertTrue(len(models) > 0)
+        self.assertIn("gemini-2.5-flash", models)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,9 @@
 import argparse
 import logging
 import sys
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def setup_logging(verbose: bool = False) -> None:
