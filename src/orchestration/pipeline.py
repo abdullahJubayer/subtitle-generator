@@ -99,7 +99,7 @@ def run_pipeline(
             try:
                 os.remove(temp_audio_path)
             except Exception as e:
-                logger.warning("Failed to clean up temporary audio file '%s': %e", temp_audio_path, e)
+                logger.warning("Failed to clean up temporary audio file '%s': %s", temp_audio_path, e)
         if os.path.exists(temp_dir):
             try:
                 os.rmdir(temp_dir)

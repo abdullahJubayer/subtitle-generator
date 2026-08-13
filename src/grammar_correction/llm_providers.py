@@ -61,6 +61,7 @@ def call_llm_provider(
             client = genai.Client(api_key=key)
             config = types.GenerateContentConfig(
                 response_mime_type="application/json",
+                response_schema=SubtitleResponse.model_json_schema(),
                 system_instruction=system_instruction if system_instruction else None,
             )
             response = client.models.generate_content(
