@@ -398,7 +398,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
         if is_puter:
             self.api_key_edit.setPlaceholderText(
-                "Enter Puter API Key (optional / set PUTER_API_KEY env var)"
+                "Enter Puter API Key (or set PUTER_API_KEY env var)"
             )
         else:
             self.api_key_edit.setPlaceholderText(

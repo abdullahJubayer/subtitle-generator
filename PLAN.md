@@ -43,4 +43,4 @@ A Python-based pipeline that extracts audio from video, transcribes it with time
 - [x] **Task 8.1:** Provider Abstraction Engine — Implement `src/grammar_correction/llm_providers.py` supporting `ollama` and `gemini` (Google Gemini API via `google-genai` with Pydantic JSON schema).
 - [x] **Task 8.2:** GUI Provider Selector & API Key Field — Add LLM Provider selector dropdown and masked API Key field in PyQt6 settings panel.
 - [x] **Task 8.3:** CLI Provider Flags & Pipeline Integration — Add `--llm-provider` and `--api-key` CLI flags and wire through `run_pipeline`.
-- [ ] **Task 8.4:** Puter.js AI Provider Integration — Add Puter.js AI REST/SDK provider (`puter`) with 500+ model support (GPT-4o-mini, Claude 3.5 Sonnet, DeepSeek, etc.) in GUI and CLI.
+- [x] **Task 8.4:** Puter.js AI Provider Integration — Add Puter.js AI REST/SDK provider (`puter`) with 500+ model support (GPT-4o-mini, Claude 3.5 Sonnet, DeepSeek, etc.) in GUI and CLI.

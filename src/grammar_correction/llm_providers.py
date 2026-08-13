@@ -110,6 +110,7 @@ def call_llm_provider(
         payload = {
             "model": model_name,
             "messages": messages,
+            "response_format": {"type": "json_object"},
         }
 
         try:

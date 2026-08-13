@@ -257,7 +257,7 @@ class TestGUIComponents(unittest.TestCase):
         self.assertFalse(self.app.api_key_container.isHidden())
         self.assertEqual(
             self.app.api_key_edit.placeholderText(),
-            "Enter Puter API Key (optional / set PUTER_API_KEY env var)",
+            "Enter Puter API Key (or set PUTER_API_KEY env var)",
         )
         self.assertEqual(self.app.ollama_combo.currentText(), "gpt-4o-mini")
         puter_items = [self.app.ollama_combo.itemText(i) for i in range(self.app.ollama_combo.count())]
