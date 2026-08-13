@@ -183,6 +183,7 @@ class TestGUIComponents(unittest.TestCase):
                 audio_track=0,
                 llm_callback=ANY,
                 transcription_callback=ANY,
+                progress_callback=ANY,
             )
 
     def test_provider_selection_toggles_models_and_api_key_visibility(self):
@@ -253,6 +254,7 @@ class TestGUIComponents(unittest.TestCase):
                 audio_track=0,
                 llm_callback=ANY,
                 transcription_callback=ANY,
+                progress_callback=ANY,
             )
 
     def test_puter_provider_selection(self):

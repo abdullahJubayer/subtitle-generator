@@ -117,6 +117,11 @@ class PipelineWorker(QThread):
         def _tx_cb(segs: list) -> None:
             self.segments_transcribed.emit(segs)
 
+        def _prog_cb(pct: float, msg: str) -> None:
+            val = int(pct)
+            self.progress_updated.emit(val, msg)
+            self.progress_changed.emit(val, msg)
+
         try:
             self.progress_updated.emit(5, "Initializing pipeline...")
             self.progress_changed.emit(5, "Initializing pipeline...")
@@ -133,6 +138,7 @@ class PipelineWorker(QThread):
                 audio_track=self.audio_track,
                 llm_callback=_llm_cb,
                 transcription_callback=_tx_cb,
+                progress_callback=_prog_cb,
             )
             self.progress_updated.emit(100, "Pipeline executed successfully!")
             self.progress_changed.emit(100, "Pipeline executed successfully!")

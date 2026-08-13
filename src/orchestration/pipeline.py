@@ -28,29 +28,9 @@ def run_pipeline(
         Callable[[str, str, str, str, str, list[tuple[str, str]]], None]
     ] = None,
     transcription_callback: Optional[Callable[[list[SegmentDict]], None]] = None,
+    progress_callback: Optional[Callable[[float, str], None]] = None,
 ) -> str:
-    """Run the complete Video-to-Subtitle pipeline.
-
-    Args:
-        video_path: Path to input video file.
-        output_path: Path for output .srt file (optional, defaults to video stem + .srt).
-        model_size: Whisper model size (default "small").
-        skip_grammar: If True, bypasses LLM grammar correction.
-        ollama_model: LLM model name to use for grammar correction.
-        target_language: Target language for translation/correction (default "English").
-        llm_provider: LLM provider name ("ollama" or "gemini", default "ollama").
-        api_key: Optional API key for cloud provider (e.g. Gemini).
-        audio_track: 0-based audio track index to extract (default 0).
-        llm_callback: Optional callback for telemetry.
-        transcription_callback: Optional callback called with raw transcribed segments immediately after transcription.
-
-    Returns:
-        Absolute path to the generated .srt file.
-
-    Raises:
-        FileNotFoundError: If input video file does not exist.
-        RuntimeError: If any pipeline module encounters a critical failure.
-    """
+    """Run the complete Video-to-Subtitle pipeline."""
     video_file = Path(video_path).resolve()
     if not video_file.exists():
         raise FileNotFoundError(f"Input video file not found: {video_path}")
@@ -67,13 +47,20 @@ def run_pipeline(
     temp_audio_path = os.path.join(temp_dir, f"{video_file.stem}_temp_audio.wav")
 
     try:
+        if progress_callback:
+            progress_callback(10.0, "Extracting audio track...")
         logger.info("[Step 1/4] Extracting audio track %d...", audio_track)
         extracted_audio = extract_audio(str(video_file), temp_audio_path, audio_track=audio_track)
 
         # Step 2: Transcribe (Module B)
         logger.info("[Step 2/4] Transcribing audio with Whisper ('%s')...", model_size)
+
+        def _tx_progress(pct: float, msg: str) -> None:
+            if progress_callback:
+                progress_callback(pct, msg)
+
         segments: list[SegmentDict] = transcribe_audio(
-            extracted_audio, model_size=model_size
+            extracted_audio, model_size=model_size, progress_callback=_tx_progress
         )
         logger.info("Transcription completed: %d segments", len(segments))
 

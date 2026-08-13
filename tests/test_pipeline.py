@@ -42,7 +42,9 @@ class TestPipeline(unittest.TestCase):
             )
 
             mock_extract.assert_called_once()
-            mock_transcribe.assert_called_once_with("/path/to/extracted.wav", model_size="small")
+            mock_transcribe.assert_called_once_with(
+                "/path/to/extracted.wav", model_size="small", progress_callback=ANY
+            )
             mock_correct.assert_called_once_with(
                 [{"id": 1, "start": 0.0, "end": 2.5, "text": "hello world"}],
                 model_name="llama3.1",

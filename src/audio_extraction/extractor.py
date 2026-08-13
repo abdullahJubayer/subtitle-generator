@@ -76,6 +76,8 @@ def extract_audio(video_path: str, audio_path: str, audio_track: int = 0) -> str
     if not os.path.exists(video_path):
         raise FileNotFoundError(f"Input video file not found: {video_path}")
 
+    import time
+    start_time = time.time()
     logger.info("Extracting audio track %d from '%s' to '%s'", audio_track, video_path, audio_path)
     cmd = [
         "ffmpeg",
@@ -98,6 +100,17 @@ def extract_audio(video_path: str, audio_path: str, audio_track: int = 0) -> str
             stderr=subprocess.PIPE,
             text=True,
             check=True,
+        )
+        elapsed = time.time() - start_time
+        try:
+            file_size_mb = os.path.getsize(audio_path) / (1024 * 1024) if os.path.exists(audio_path) else 0.0
+        except Exception:
+            file_size_mb = 0.0
+
+        logger.info(
+            "Audio extraction complete in %.2fs (Extracted file size: %.1f MB)",
+            elapsed,
+            file_size_mb,
         )
     except subprocess.CalledProcessError as e:
         stderr_output = e.stderr or ""
