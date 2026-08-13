@@ -15,16 +15,16 @@ logger = logging.getLogger(__name__)
 
 
 def get_available_gemini_models(api_key: str | None = None) -> list[str]:
-    """Dynamically fetch and verify available non-deprecated Gemini models.
+    """Dynamically list active text-generation Gemini models.
 
     Args:
         api_key: Optional API key. If None, reads from GEMINI_API_KEY env var.
 
     Returns:
-        List of verified working Gemini model names.
+        List of available Gemini model names.
     """
     key = api_key or os.environ.get("GEMINI_API_KEY")
-    default_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.1-pro-preview", "gemini-pro-latest"]
+    default_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"]
     if not key:
         return default_models
 
@@ -36,8 +36,8 @@ def get_available_gemini_models(api_key: str | None = None) -> list[str]:
             name = getattr(m, "name", "") or str(m)
             clean_name = name.replace("models/", "")
             if "gemini" in clean_name.lower() and not any(
-                dep in clean_name.lower()
-                for dep in ["deprecated", "audio", "embedding", "robotics", "computer-use", "image", "tts"]
+                skip in clean_name.lower()
+                for skip in ["deprecated", "audio", "embedding", "robotics", "computer-use", "image", "tts", "2.5-flash"]
             ):
                 candidates.append(clean_name)
     except Exception as e:
@@ -46,34 +46,10 @@ def get_available_gemini_models(api_key: str | None = None) -> list[str]:
     if not candidates:
         candidates = default_models
 
-    # Perform lightweight test call verification to exclude 404 NOT_FOUND deprecated models
-    verified: list[str] = []
-    try:
-        from google import genai
-        client = genai.Client(api_key=key)
-        for m in candidates:
-            try:
-                res = client.models.generate_content(model=m, contents="hi")
-                if res:
-                    verified.append(m)
-            except Exception as err:
-                err_str = str(err)
-                # Exclude if 404 NOT_FOUND / no longer available for new users
-                if "404" in err_str or "no longer available" in err_str:
-                    logger.debug("Excluding deprecated Gemini model '%s': %s", m, err_str)
-                else:
-                    # Keep models that failed due to temporary 429 quota rate limits but are valid active models
-                    verified.append(m)
-    except Exception as e:
-        logger.debug("Model verification ping failed: %s", e)
-
-    if not verified:
-        verified = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.1-pro-preview"]
-
     # Deduplicate while preserving order
     seen = set()
     deduped = []
-    for m in verified:
+    for m in candidates:
         if m not in seen:
             seen.add(m)
             deduped.append(m)
