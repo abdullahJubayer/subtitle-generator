@@ -756,7 +756,11 @@ class SubtitleGeneratorApp(QMainWindow):
         self.stack.setCurrentIndex(2)  # Automatically switch to Stage 3: Full Screen Video Player & Export!
 
     def _on_single_convert_requested(
-        self, seg_id: int, segment: dict, is_batch: bool = False
+        self,
+        seg_id: int,
+        segment: dict,
+        is_batch: bool = False,
+        on_complete_callback: Optional[Callable[[], None]] = None,
     ) -> None:
         """Handle single segment line conversion request via SingleSegmentWorker."""
         self.studio_table.set_segment_translating(seg_id)
@@ -790,6 +794,8 @@ class SubtitleGeneratorApp(QMainWindow):
                 self.studio_table.set_convert_all_running(True, current=completed, total=getattr(self, "_convert_all_total", 0))
                 if self._convert_all_pending == 0:
                     self.studio_table.set_convert_all_running(False)
+            if on_complete_callback:
+                on_complete_callback()
 
         def _on_err(sid: int, err: str) -> None:
             self.studio_table.update_segment_translation(sid, segment.get("text", ""), "Error")
@@ -799,25 +805,42 @@ class SubtitleGeneratorApp(QMainWindow):
                 self.studio_table.set_convert_all_running(True, current=completed, total=getattr(self, "_convert_all_total", 0))
                 if self._convert_all_pending == 0:
                     self.studio_table.set_convert_all_running(False)
+            if on_complete_callback:
+                on_complete_callback()
 
         worker.segment_finished.connect(_on_finish)
         worker.segment_error.connect(_on_err)
         worker.start()
 
     def _on_convert_all_requested(self) -> None:
-        """Handle Convert All Lines toolbar button click: disables button and updates status to running."""
+        """Handle Convert All Lines toolbar button click: executes controlled parallel concurrent conversions."""
         active_segs = self.studio_table.get_active_segments()
         if not active_segs:
             return
 
         total = len(active_segs)
+        max_workers = self.studio_table.get_max_concurrency()
         self._convert_all_total = total
         self._convert_all_pending = total
+        self._active_worker_count = 0
         self.studio_table.set_convert_all_running(True, current=0, total=total)
 
-        for seg in active_segs:
-            seg_id = int(seg["id"])
-            self._on_single_convert_requested(seg_id, seg, is_batch=True)
+        queue = list(active_segs)
+
+        def dispatch_next() -> None:
+            while queue and getattr(self, "_active_worker_count", 0) < max_workers:
+                seg = queue.pop(0)
+                seg_id = int(seg["id"])
+                self._active_worker_count = getattr(self, "_active_worker_count", 0) + 1
+                self._on_single_convert_requested(
+                    seg_id, seg, is_batch=True, on_complete_callback=on_worker_complete
+                )
+
+        def on_worker_complete() -> None:
+            self._active_worker_count = max(0, getattr(self, "_active_worker_count", 1) - 1)
+            dispatch_next()
+
+        dispatch_next()
 
     def _on_studio_segments_changed(self) -> None:
         """Auto-update SRT preview and video player subtitles whenever interactive table changes."""

@@ -5,6 +5,7 @@ from typing import Callable, Optional
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
+    QComboBox,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -103,7 +104,22 @@ class InteractiveSubtitleTableWidget(QWidget):
         )
         self.revert_all_btn.clicked.connect(self.revert_all_segments)
 
+        # Concurrency selector QComboBox
+        self.concurrency_label = QLabel("Parallel Calls:")
+        self.concurrency_label.setStyleSheet("color: #a6adc8; font-size: 11px;")
+        self.concurrency_combo = QComboBox()
+        self.concurrency_combo.addItems([
+            "2 Workers",
+            "4 Workers (Default)",
+            "8 Workers",
+            "16 Workers",
+        ])
+        self.concurrency_combo.setCurrentText("4 Workers (Default)")
+        self.concurrency_combo.setStyleSheet("font-size: 11px; padding: 2px 6px;")
+
         toolbar.addWidget(self.info_label, stretch=1)
+        toolbar.addWidget(self.concurrency_label)
+        toolbar.addWidget(self.concurrency_combo)
         toolbar.addWidget(self.convert_all_btn)
         toolbar.addWidget(self.revert_all_btn)
         layout.addLayout(toolbar)
@@ -223,6 +239,17 @@ class InteractiveSubtitleTableWidget(QWidget):
 
         self.table.blockSignals(False)
         self.segments_changed.emit()
+
+    def get_max_concurrency(self) -> int:
+        """Get maximum number of parallel concurrent line translation workers."""
+        text = self.concurrency_combo.currentText()
+        if "2" in text:
+            return 2
+        elif "8" in text:
+            return 8
+        elif "16" in text:
+            return 16
+        return 4
 
     def set_convert_all_running(
         self, is_running: bool, current: int = 0, total: int = 0
