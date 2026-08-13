@@ -143,7 +143,7 @@ QTabBar::tab:selected {
 """
 
 
-GEMINI_MODELS = ["gemini-2.5-flash", "gemini-1.5-pro", "gemini-1.5-flash"]
+GEMINI_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.1-pro-preview"]
 PUTER_MODELS = [
     "gpt-4o-mini",
     "gpt-4o",
@@ -420,8 +420,8 @@ class SubtitleGeneratorApp(QMainWindow):
             key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
             gemini_models = get_available_gemini_models(key)
             self.ollama_combo.addItems(gemini_models)
-            if "gemini-2.5-flash" in gemini_models:
-                self.ollama_combo.setCurrentText("gemini-2.5-flash")
+            if "gemini-1.5-flash" in gemini_models:
+                self.ollama_combo.setCurrentText("gemini-1.5-flash")
             elif gemini_models:
                 self.ollama_combo.setCurrentText(gemini_models[0])
         else:

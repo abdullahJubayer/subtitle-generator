@@ -13,49 +13,65 @@ logger = logging.getLogger(__name__)
 
 
 def get_available_gemini_models(api_key: str | None = None) -> list[str]:
-    """Dynamically fetch available Gemini models using google-genai or google.generativeai.
+    """Dynamically fetch and verify available non-deprecated Gemini models.
 
     Args:
         api_key: Optional API key. If None, reads from GEMINI_API_KEY env var.
 
     Returns:
-        List of available Gemini model names.
+        List of verified working Gemini model names.
     """
     key = api_key or os.environ.get("GEMINI_API_KEY")
+    default_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.1-pro-preview", "gemini-pro-latest"]
     if not key:
-        return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"]
+        return default_models
 
-    fetched_models: list[str] = []
+    candidates: list[str] = []
     try:
         from google import genai
         client = genai.Client(api_key=key)
         for m in client.models.list():
             name = getattr(m, "name", "") or str(m)
             clean_name = name.replace("models/", "")
-            if "gemini" in clean_name.lower():
-                fetched_models.append(clean_name)
+            if "gemini" in clean_name.lower() and not any(
+                dep in clean_name.lower()
+                for dep in ["deprecated", "audio", "embedding", "robotics", "computer-use", "image", "tts"]
+            ):
+                candidates.append(clean_name)
     except Exception as e:
         logger.debug("Failed listing models with google.genai: %s", e)
 
-    if not fetched_models:
-        try:
-            import google.generativeai as genai_legacy
-            genai_legacy.configure(api_key=key)
-            for m in genai_legacy.list_models():
-                clean_name = m.name.replace("models/", "")
-                methods = getattr(m, "supported_generation_methods", [])
-                if "gemini" in clean_name.lower() and (not methods or "generateContent" in methods):
-                    fetched_models.append(clean_name)
-        except Exception as e:
-            logger.debug("Failed listing models with google.generativeai: %s", e)
+    if not candidates:
+        candidates = default_models
 
-    if not fetched_models:
-        return ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"]
+    # Perform lightweight test call verification to exclude 404 NOT_FOUND deprecated models
+    verified: list[str] = []
+    try:
+        from google import genai
+        client = genai.Client(api_key=key)
+        for m in candidates:
+            try:
+                res = client.models.generate_content(model=m, contents="hi")
+                if res:
+                    verified.append(m)
+            except Exception as err:
+                err_str = str(err)
+                # Exclude if 404 NOT_FOUND / no longer available for new users
+                if "404" in err_str or "no longer available" in err_str:
+                    logger.debug("Excluding deprecated Gemini model '%s': %s", m, err_str)
+                else:
+                    # Keep models that failed due to temporary 429 quota rate limits but are valid active models
+                    verified.append(m)
+    except Exception as e:
+        logger.debug("Model verification ping failed: %s", e)
+
+    if not verified:
+        verified = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-3.1-pro-preview"]
 
     # Deduplicate while preserving order
     seen = set()
     deduped = []
-    for m in fetched_models:
+    for m in verified:
         if m not in seen:
             seen.add(m)
             deduped.append(m)

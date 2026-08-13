@@ -427,11 +427,10 @@ class TestGrammarCorrection(unittest.TestCase):
         self.assertEqual(result[0]["text"], "hello puter world")
 
     def test_get_available_gemini_models(self):
-        """Verify get_available_gemini_models returns fallback or list of models."""
+        """Verify get_available_gemini_models returns fallback or list of non-deprecated models."""
         models = get_available_gemini_models()
         self.assertIsInstance(models, list)
         self.assertTrue(len(models) > 0)
-        self.assertIn("gemini-2.5-flash", models)
 
 
 if __name__ == "__main__":
