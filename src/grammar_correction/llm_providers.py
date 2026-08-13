@@ -3,6 +3,8 @@
 import json
 import logging
 import os
+import re
+import time
 from typing import Any
 import urllib.error
 import urllib.request
@@ -135,16 +137,47 @@ def call_llm_provider(
                 system_instruction=system_instruction if system_instruction else None,
             )
 
-            # Perform call with requested model or auto-fallback if deprecated/404
+            def _extract_retry_delay(err_msg: str, default_sec: float = 5.0) -> float:
+                match = re.search(r'retry\s+in\s+([\d\.]+)s', err_msg, re.IGNORECASE)
+                if not match:
+                    match = re.search(r'\'retryDelay\':\s*\'(\d+)s\'', err_msg)
+                if match:
+                    try:
+                        return min(float(match.group(1)), 45.0)
+                    except ValueError:
+                        pass
+                return default_sec
+
+            def _try_generate(model_to_use: str, max_retries: int = 2):
+                for attempt in range(max_retries + 1):
+                    try:
+                        return client.models.generate_content(
+                            model=model_to_use,
+                            contents=user_content,
+                            config=config,
+                        )
+                    except Exception as err:
+                        err_str = str(err)
+                        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                            if attempt < max_retries:
+                                wait_sec = _extract_retry_delay(err_str, default_sec=5.0)
+                                logger.warning(
+                                    "⚠️ Rate limit (429) on Gemini model '%s' (Attempt %d/%d). Waiting %.1fs before retrying...",
+                                    model_to_use,
+                                    attempt + 1,
+                                    max_retries + 1,
+                                    wait_sec,
+                                )
+                                time.sleep(wait_sec)
+                                continue
+                        raise err
+
+            # Perform call with requested model or auto-fallback if deprecated/404/429
             try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=user_content,
-                    config=config,
-                )
+                response = _try_generate(model_name, max_retries=2)
             except Exception as model_err:
                 logger.warning(
-                    "Gemini API model '%s' failed (%s). Attempting auto-fallback...",
+                    "Gemini API model '%s' failed (%s). Attempting auto-fallback across alternative models...",
                     model_name,
                     model_err,
                 )
@@ -152,14 +185,10 @@ def call_llm_provider(
                 response = None
                 for fb_model in fallback_models:
                     try:
-                        response = client.models.generate_content(
-                            model=fb_model,
-                            contents=user_content,
-                            config=config,
-                        )
+                        response = _try_generate(fb_model, max_retries=1)
                         if response:
                             logger.warning(
-                                "⚠️ Model '%s' is unavailable or deprecated. Automatically switched to working model '%s'. Please select a valid model in the dropdown.",
+                                "⚠️ Model '%s' hit rate limit/error. Automatically switched to working model '%s'.",
                                 model_name,
                                 fb_model,
                             )
