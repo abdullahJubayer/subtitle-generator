@@ -574,11 +574,13 @@ class SubtitleGeneratorApp(QMainWindow):
         provider_text = self.provider_combo.currentText()
         if "Puter" in provider_text:
             llm_provider = "puter"
+            api_key = self.api_key_edit.text().strip() or os.environ.get("PUTER_API_KEY")
         elif "Gemini" in provider_text or "Cloud" in provider_text:
             llm_provider = "gemini"
+            api_key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
         else:
             llm_provider = "ollama"
-        api_key = self.api_key_edit.text().strip() or None
+            api_key = None
 
         # Spawn pipeline worker thread
         self.llm_console.clear()

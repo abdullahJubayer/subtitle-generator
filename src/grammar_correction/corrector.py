@@ -124,6 +124,7 @@ def correct_grammar(
                 f"Grammar correction failed for batch starting at index {i}: {e}. "
                 "Falling back to original segment text."
             )
+            content = json.dumps({"error": str(e), "provider": provider, "model": model_name, "status": "failed"}, indent=2)
 
         latency = time.time() - start_time
         if llm_callback:
@@ -136,7 +137,7 @@ def correct_grammar(
 
             batch_info = f"Batch: {batch_index}/{total_batches} ({len(batch)} segs) | Latency: {latency:.2f}s"
             payload_json = json.dumps(payload, indent=2)
-            response_json = content or ""
+            response_json = content or json.dumps({"error": "Empty response", "status": "failed"}, indent=2)
             try:
                 llm_callback(
                     payload_json,

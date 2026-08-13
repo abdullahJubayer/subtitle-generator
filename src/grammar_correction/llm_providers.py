@@ -118,12 +118,44 @@ def call_llm_provider(
                 response_schema=SubtitleResponse.model_json_schema(),
                 system_instruction=system_instruction if system_instruction else None,
             )
-            response = client.models.generate_content(
-                model=model_name,
-                contents=user_content,
-                config=config,
-            )
-            return response.text or ""
+
+            # Perform call with requested model or auto-fallback if deprecated/404
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=user_content,
+                    config=config,
+                )
+            except Exception as model_err:
+                logger.warning(
+                    "Gemini API model '%s' failed (%s). Attempting auto-fallback...",
+                    model_name,
+                    model_err,
+                )
+                fallback_models = [m for m in get_available_gemini_models(key) if m != model_name]
+                response = None
+                for fb_model in fallback_models:
+                    try:
+                        response = client.models.generate_content(
+                            model=fb_model,
+                            contents=user_content,
+                            config=config,
+                        )
+                        if response:
+                            break
+                    except Exception:
+                        continue
+                if not response:
+                    raise model_err
+
+            res_text = getattr(response, "text", "") or ""
+            if not res_text and hasattr(response, "candidates") and response.candidates:
+                cand = response.candidates[0]
+                if hasattr(cand, "content") and hasattr(cand.content, "parts"):
+                    for p in cand.content.parts:
+                        if hasattr(p, "text") and p.text:
+                            res_text += p.text
+            return res_text or ""
         except ImportError:
             try:
                 import google.generativeai as genai_legacy
