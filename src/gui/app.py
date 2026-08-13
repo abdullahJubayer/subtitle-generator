@@ -311,6 +311,19 @@ class SubtitleGeneratorApp(QMainWindow):
         language_layout.addWidget(self.language_combo)
         settings_layout.addLayout(language_layout)
 
+        # Audio Track Selector (Visible when multiple audio streams exist)
+        self.audio_track_container = QWidget()
+        audio_track_layout = QHBoxLayout(self.audio_track_container)
+        audio_track_layout.setContentsMargins(0, 0, 0, 0)
+        audio_track_label = QLabel("Audio Track:")
+        audio_track_label.setFixedWidth(120)
+        self.audio_track_combo = QComboBox()
+        self.audio_track_combo.addItems(["Track 1: Default Audio Stream"])
+        audio_track_layout.addWidget(audio_track_label)
+        audio_track_layout.addWidget(self.audio_track_combo)
+        self.audio_track_container.setVisible(False)
+        settings_layout.addWidget(self.audio_track_container)
+
         # Enable LLM Checkbox
         self.enable_llm_check = QCheckBox("Enable LLM Grammar Correction & Translation")
         self.enable_llm_check.setChecked(True)
@@ -586,6 +599,31 @@ class SubtitleGeneratorApp(QMainWindow):
         if file_path:
             self.selected_video_path = file_path
             self.file_path_edit.setText(file_path)
+            self._inspect_audio_tracks(file_path)
+
+    def _inspect_audio_tracks(self, video_path: str) -> None:
+        """Inspect video file audio streams and populate audio track selector if multiple streams exist."""
+        if not video_path or not os.path.exists(video_path):
+            self.audio_track_container.setVisible(False)
+            return
+
+        from src.audio_extraction.extractor import get_audio_tracks
+        tracks = get_audio_tracks(video_path)
+        self.audio_track_combo.clear()
+
+        if len(tracks) > 1:
+            for t in tracks:
+                self.audio_track_combo.addItem(t["label"])
+            self.audio_track_container.setVisible(True)
+            self.whisper_console.append_log(
+                f"[Audio Inspector] 🎵 Detected {len(tracks)} audio streams in video! Showing track selection."
+            )
+        elif len(tracks) == 1:
+            self.audio_track_combo.addItem(tracks[0]["label"])
+            self.audio_track_container.setVisible(False)
+        else:
+            self.audio_track_combo.addItem("Track 1: Default Audio Stream")
+            self.audio_track_container.setVisible(False)
 
     @property
     def skip_grammar_check(self) -> object:
@@ -687,6 +725,10 @@ class SubtitleGeneratorApp(QMainWindow):
             llm_provider = "ollama"
             api_key = None
 
+        audio_track = self.audio_track_combo.currentIndex() if self.audio_track_combo.count() > 0 else 0
+        if audio_track < 0:
+            audio_track = 0
+
         # Spawn pipeline worker thread
         self.llm_console.clear()
         self.worker = PipelineWorker(
@@ -697,6 +739,7 @@ class SubtitleGeneratorApp(QMainWindow):
             target_language=target_language,
             llm_provider=llm_provider,
             api_key=api_key,
+            audio_track=audio_track,
         )
         self.worker.progress_updated.connect(self._on_progress_updated)
         self.worker.log_emitted.connect(self._on_log_emitted)

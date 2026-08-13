@@ -74,6 +74,7 @@ class PipelineWorker(QThread):
         target_language: str = "English",
         llm_provider: str = "ollama",
         api_key: Optional[str] = None,
+        audio_track: int = 0,
         parent: Optional[QObject] = None,
     ) -> None:
         super().__init__(parent)
@@ -85,6 +86,7 @@ class PipelineWorker(QThread):
         self.target_language = target_language
         self.llm_provider = llm_provider
         self.api_key = api_key
+        self.audio_track = audio_track
 
     def run(self) -> None:
         """Execute the pipeline in a separate thread."""
@@ -128,6 +130,7 @@ class PipelineWorker(QThread):
                 target_language=self.target_language,
                 llm_provider=self.llm_provider,
                 api_key=self.api_key,
+                audio_track=self.audio_track,
                 llm_callback=_llm_cb,
                 transcription_callback=_tx_cb,
             )

@@ -23,6 +23,7 @@ def run_pipeline(
     target_language: str = "English",
     llm_provider: str = "ollama",
     api_key: str | None = None,
+    audio_track: int = 0,
     llm_callback: Optional[
         Callable[[str, str, str, str, str, list[tuple[str, str]]], None]
     ] = None,
@@ -39,6 +40,7 @@ def run_pipeline(
         target_language: Target language for translation/correction (default "English").
         llm_provider: LLM provider name ("ollama" or "gemini", default "ollama").
         api_key: Optional API key for cloud provider (e.g. Gemini).
+        audio_track: 0-based audio track index to extract (default 0).
         llm_callback: Optional callback for telemetry.
         transcription_callback: Optional callback called with raw transcribed segments immediately after transcription.
 
@@ -65,8 +67,8 @@ def run_pipeline(
     temp_audio_path = os.path.join(temp_dir, f"{video_file.stem}_temp_audio.wav")
 
     try:
-        logger.info("[Step 1/4] Extracting audio track...")
-        extracted_audio = extract_audio(str(video_file), temp_audio_path)
+        logger.info("[Step 1/4] Extracting audio track %d...", audio_track)
+        extracted_audio = extract_audio(str(video_file), temp_audio_path, audio_track=audio_track)
 
         # Step 2: Transcribe (Module B)
         logger.info("[Step 2/4] Transcribing audio with Whisper ('%s')...", model_size)

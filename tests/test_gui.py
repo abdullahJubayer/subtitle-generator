@@ -95,6 +95,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="ollama",
                 api_key=None,
+                audio_track=0,
             )
 
             mock_worker_cls.reset_mock()
@@ -110,6 +111,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="ollama",
                 api_key=None,
+                audio_track=0,
             )
 
     def test_custom_ollama_model_string_passing(self):
@@ -134,6 +136,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="ollama",
                 api_key=None,
+                audio_track=0,
             )
             mock_worker_instance.start.assert_called_once()
 
@@ -156,6 +159,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="Spanish",
                 llm_provider="ollama",
                 api_key=None,
+                audio_track=0,
             )
             mock_worker_instance.start.assert_called_once()
 
@@ -176,6 +180,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="Bangla (Bengali)",
                 llm_provider="ollama",
                 api_key=None,
+                audio_track=0,
                 llm_callback=ANY,
                 transcription_callback=ANY,
             )
@@ -223,6 +228,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="gemini",
                 api_key="test-secret-key-123",
+                audio_track=0,
             )
             mock_worker_instance.start.assert_called_once()
 
@@ -244,6 +250,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="gemini",
                 api_key="cloud-api-key-xyz",
+                audio_track=0,
                 llm_callback=ANY,
                 transcription_callback=ANY,
             )
@@ -279,6 +286,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="puter",
                 api_key="puter-secret-key-456",
+                audio_track=0,
             )
             mock_worker_instance.start.assert_called_once()
 
@@ -361,6 +369,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="French",
                 llm_provider="ollama",
                 api_key=None,
+                audio_track=0,
             )
 
     def test_main_cli_llm_provider_and_api_key_flags(self):
@@ -379,6 +388,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="gemini",
                 api_key="my-gemini-key",
+                audio_track=0,
             )
 
     def test_main_cli_puter_provider_flag(self):
@@ -397,6 +407,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="puter",
                 api_key=None,
+                audio_track=0,
             )
 
     def test_whisper_console_widget(self):

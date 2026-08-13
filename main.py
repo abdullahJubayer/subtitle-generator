@@ -80,6 +80,12 @@ def main() -> int:
         help="API key for cloud LLM provider (e.g. Gemini API key)",
     )
     parser.add_argument(
+        "--audio-track",
+        type=int,
+        default=0,
+        help="0-based audio stream index to extract when multiple audio tracks exist (default: 0)",
+    )
+    parser.add_argument(
         "--skip-grammar",
         action="store_true",
         help="Skip LLM grammar correction stage",
@@ -119,6 +125,7 @@ def main() -> int:
             target_language=args.target_language,
             llm_provider=args.llm_provider,
             api_key=args.api_key,
+            audio_track=args.audio_track,
         )
         print(f"\n✨ Subtitle generation complete! File saved at:\n   {output_srt}")
         return 0
