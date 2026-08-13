@@ -92,7 +92,7 @@ class WhisperConsoleWidget(QWidget):
         toolbar_layout.setSpacing(6)
 
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Filter log entries...")
+        self.search_input.setPlaceholderText("Filter log entries...")
         self.search_input.textChanged.connect(self._on_search_changed)
 
         self.clear_button = QPushButton("Clear Log")
@@ -234,10 +234,10 @@ class SrtConsoleWidget(QWidget):
     def update_integrity_status(self, is_valid: bool, message: str) -> None:
         """Update timestamp integrity status label text and styling."""
         if is_valid:
-            status_text = f"Integrity: Valid ✓ ({message})" if message else "Integrity: Valid ✓"
+            status_text = f"Integrity: Valid ({message})" if message else "Integrity: Valid"
             color = "#a6e3a1"
         else:
-            status_text = f"Integrity: Invalid ❌ ({message})" if message else "Integrity: Invalid ❌"
+            status_text = f"Integrity: Invalid ({message})" if message else "Integrity: Invalid"
             color = "#f38ba8"
 
         self.integrity_label.setText(status_text)

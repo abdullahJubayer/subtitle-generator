@@ -7,6 +7,7 @@ description: Standardized UI/UX design system and QSS styling guidelines for bui
 
 ## 1. Core Visual Principles
 - **Function-Driven Design:** Clear visual hierarchy, frictionless interactions, fast feedback.
+- **No Emojis in UI:** Strictly DO NOT use emojis in UI labels, buttons, tab titles, window titles, headers, dialogs, or status indicators. Use clean text labels, professional typography, or vector SVG icons instead.
 - **Premium Dark Palette (Catppuccin Macchiato Aesthetic):**
   - Window Background: `#1e1e2e` (Deep Base)
   - Card / Panel Surface: `#181825` (Elevated Container)
@@ -107,4 +108,4 @@ QTabBar::tab:selected {
 ## 4. Micro-Interactions & Responsiveness
 1. **Dynamic Layout Math:** Avoid rigid pixel heights; use fluid layouts (`QVBoxLayout`, `QHBoxLayout`, `QSplitter`) with proper `stretch` factors.
 2. **Interactive States:** Every interactive element must provide distinct visual feedback for `hover`, `active`, `focused`, and `disabled` states.
-3. **Telemetry & Visual Status Indicators:** Use visual badge tags (e.g. `🎙️ Whisper Log`, `🧠 LLM Telemetry`, `📄 SRT Preview`) and color-coded status badges for instant clarity.
+3. **Clean Professional Labels:** Avoid emoji clutter. Use clear, concise text labels (e.g. `Whisper Log`, `LLM Telemetry`, `SRT Preview`) and color-coded status badges for instant clarity.

@@ -334,7 +334,7 @@ class SubtitleGeneratorApp(QMainWindow):
         left_layout.addWidget(settings_group)
 
         # 3. Action Controls
-        self.start_button = QPushButton("🚀 Start Subtitle Pipeline")
+        self.start_button = QPushButton("Start Subtitle Pipeline")
         self.start_button.setStyleSheet(
             "font-size: 14px; padding: 10px; background-color: #a6e3a1; color: #11111b;"
         )
@@ -360,9 +360,9 @@ class SubtitleGeneratorApp(QMainWindow):
         self.llm_console_widget = self.llm_console
         self.srt_console = SrtConsoleWidget()
 
-        self.console_tabs.addTab(self.whisper_console, "🎙️ Whisper Log")
-        self.console_tabs.addTab(self.llm_console, "🧠 LLM Telemetry & Diffs")
-        self.console_tabs.addTab(self.srt_console, "📄 SRT Preview")
+        self.console_tabs.addTab(self.whisper_console, "Whisper Log")
+        self.console_tabs.addTab(self.llm_console, "LLM Telemetry & Diffs")
+        self.console_tabs.addTab(self.srt_console, "SRT Preview")
 
         self.log_console = self.whisper_console.log_area
 
@@ -377,7 +377,7 @@ class SubtitleGeneratorApp(QMainWindow):
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(16, 16, 16, 16)
 
-        preview_header = QLabel("📺 Video Preview & Subtitles")
+        preview_header = QLabel("Video Preview & Subtitles")
         preview_header.setStyleSheet(
             "font-size: 16px; font-weight: bold; color: #89b4fa; padding-bottom: 4px;"
         )
@@ -389,12 +389,12 @@ class SubtitleGeneratorApp(QMainWindow):
 
         # Action bar for SRT download/export
         srt_action_layout = QHBoxLayout()
-        self.export_button = QPushButton("💾 Export / Save .SRT File")
+        self.export_button = QPushButton("Export / Save .SRT File")
         self.export_button.setEnabled(False)
         self.export_button.setStyleSheet("background-color: #a6e3a1; color: #11111b; font-weight: bold; padding: 8px 16px; border-radius: 6px;")
         self.export_button.clicked.connect(self._on_export_srt)
 
-        self.load_srt_button = QPushButton("📂 Load .SRT Subtitle File")
+        self.load_srt_button = QPushButton("Load .SRT Subtitle File")
         self.load_srt_button.setStyleSheet("background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 8px 16px; border-radius: 6px;")
         self.load_srt_button.clicked.connect(self._on_load_custom_srt)
 
@@ -616,7 +616,7 @@ class SubtitleGeneratorApp(QMainWindow):
     def _on_pipeline_finished(self, video_path: str, srt_path: str):
         self._set_controls_enabled(True)
         self.progress_bar.setValue(100)
-        self.stage_label.setText("Status: ✨ Pipeline Completed!")
+        self.stage_label.setText("Status: Pipeline Completed!")
 
         self.generated_srt_path = srt_path
         self.export_button.setEnabled(True)
@@ -637,14 +637,14 @@ class SubtitleGeneratorApp(QMainWindow):
         if getattr(self, "_llm_warning_notice", None):
             QMessageBox.warning(
                 self,
-                "⚠️ LLM Model Warning / Auto-Switch",
+                "LLM Model Warning / Auto-Switch",
                 f"{self._llm_warning_notice}\n\nSubtitles were generated successfully. You can select a different model in the LLM Model dropdown if desired.\n\nFile location: {srt_path}",
             )
         else:
             QMessageBox.information(
                 self,
                 "Pipeline Complete",
-                f"✨ Subtitle generation complete!\n\nSubtitles auto-loaded into player.\nClick '💾 Export / Save .SRT File' to save it to your computer.\n\nFile location: {srt_path}",
+                f"Subtitle generation complete!\n\nSubtitles auto-loaded into player.\nClick 'Export / Save .SRT File' to save it to your computer.\n\nFile location: {srt_path}",
             )
 
     def _on_export_srt(self) -> None:
@@ -711,7 +711,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
     def _on_pipeline_error(self, error_msg: str) -> None:
         self._set_controls_enabled(True)
-        self.stage_label.setText("Status: ❌ Error Encountered")
+        self.stage_label.setText("Status: Error Encountered")
         QMessageBox.critical(
             self,
             "Pipeline Failure",
