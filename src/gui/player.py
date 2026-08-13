@@ -57,31 +57,49 @@ def parse_srt(srt_path: str) -> List[Tuple[int, int, str]]:
         return subtitles
 
     content = content.replace("\r\n", "\n").replace("\r", "\n")
-    blocks = re.split(r"\n{2,}", content.strip())
-    for block in blocks:
-        lines = [line.strip() for line in block.strip().splitlines() if line.strip()]
-        if not lines:
-            continue
 
-        time_index = -1
-        for idx, line in enumerate(lines):
-            if "-->" in line:
-                time_index = idx
-                break
+    # Robust regex matching SRT timestamp blocks and text
+    pattern = re.compile(
+        r"(?:(\d+)\n)?"
+        r"(\d{2}:\d{2}:\d{2}[.,]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[.,]\d{3})\n"
+        r"(.*?)(?=\n{2,}\d+\n\d{2}:\d{2}:\d{2}[.,]\d{3}|\n{2,}\d{2}:\d{2}:\d{2}[.,]\d{3}|\Z)",
+        re.DOTALL,
+    )
 
-        if time_index == -1:
-            continue
+    for match in pattern.finditer(content):
+        start_str, end_str, text_str = match.group(2), match.group(3), match.group(4)
+        start_ms = timestamp_to_ms(start_str)
+        end_ms = timestamp_to_ms(end_str)
+        clean_text = text_str.strip()
+        if end_ms >= start_ms and clean_text:
+            subtitles.append((start_ms, end_ms, clean_text))
 
-        times = lines[time_index].split("-->")
-        if len(times) != 2:
-            continue
+    if not subtitles:
+        blocks = re.split(r"\n\s*\n", content.strip())
+        for block in blocks:
+            lines = [line.strip() for line in block.strip().splitlines() if line.strip()]
+            if not lines:
+                continue
 
-        start_ms = timestamp_to_ms(times[0])
-        end_ms = timestamp_to_ms(times[1])
-        text = "\n".join(lines[time_index + 1 :]).strip()
+            time_index = -1
+            for idx, line in enumerate(lines):
+                if "-->" in line:
+                    time_index = idx
+                    break
 
-        if end_ms >= start_ms and text:
-            subtitles.append((start_ms, end_ms, text))
+            if time_index == -1:
+                continue
+
+            times = lines[time_index].split("-->")
+            if len(times) != 2:
+                continue
+
+            start_ms = timestamp_to_ms(times[0])
+            end_ms = timestamp_to_ms(times[1])
+            text = "\n".join(lines[time_index + 1 :]).strip()
+
+            if end_ms >= start_ms and text:
+                subtitles.append((start_ms, end_ms, text))
 
     logger.info("Successfully parsed %d subtitle segments from '%s'", len(subtitles), srt_path)
     return subtitles
