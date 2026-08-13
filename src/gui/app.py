@@ -907,7 +907,20 @@ class SubtitleGeneratorApp(QMainWindow):
 
     def _on_log_emitted(self, msg: str):
         self.whisper_console.append_log(msg)
-        if "Automatically switched" in msg or "Grammar correction failed" in msg:
+        if "[Whisper Progress]" in msg:
+            parts = msg.split("[Whisper Progress]")
+            if len(parts) > 1:
+                clean_msg = parts[1].strip()
+                self.stage_label.setText(f"Status: {clean_msg}")
+                if "%" in clean_msg:
+                    try:
+                        pct_str = clean_msg.split("%")[0].split("-")[-1].strip()
+                        pct_val = float(pct_str)
+                        overall_pct = int(20.0 + (pct_val * 0.70))
+                        self.progress_bar.setValue(overall_pct)
+                    except Exception:
+                        pass
+        elif "Automatically switched" in msg or "Grammar correction failed" in msg:
             self._llm_warning_notice = msg
 
     def _on_pipeline_finished(self, video_path: str, srt_path: str):

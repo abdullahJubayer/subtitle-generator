@@ -506,6 +506,12 @@ class TestGUIComponents(unittest.TestCase):
         self.app._on_log_emitted("[Step 3/4] LLM grammar correction starting...")
         self.assertIn("LLM grammar correction starting", self.app.whisper_console.get_log_text())
 
+        # Test Whisper progress log parsing updates stage_label and progress_bar
+        progress_log = "02:02:19 [INFO] src.transcription.transcriber: [Whisper Progress] Transcribing audio (00:49:43 / 01:50:31) - 45.0% [5.2x speed, ETA: 11m 42s]"
+        self.app._on_log_emitted(progress_log)
+        self.assertIn("Transcribing audio (00:49:43 / 01:50:31) - 45.0% [5.2x speed, ETA: 11m 42s]", self.app.stage_label.text())
+        self.assertEqual(self.app.progress_bar.value(), 51)
+
         # Test srt auto-loading on pipeline finish
         import tempfile
         with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".srt") as temp_srt:
