@@ -16,8 +16,9 @@ NATURAL_TRANSLATION_SYSTEM_PROMPT_TEMPLATE = (
     "1. ABSOLUTELY NO literal word-for-word or robotic machine translations. Adapt phrases into natural, colloquial, spoken idioms of {target_language}.\n"
     "2. Use modern, authentic vocabulary and realistic sentence flow that native speakers actually use in daily life.\n"
     "3. Preserve the speaker's emotional tone, context, humor, and nuances naturally.\n"
-    "4. CRITICAL CONSTRAINT: You MUST translate EVERY SINGLE segment provided in the input payload. DO NOT leave any text empty, omit, or skip segment IDs.\n"
-    "5. Return valid JSON matching this schema strictly: {{\"segments\": [{{\"id\": 1, \"text\": \"translated text in {target_language}\"}}]}}"
+    "4. CRITICAL CONSTRAINT: You MUST translate EVERY SINGLE segment provided in the input payload. Maintain exact 1-to-1 matching with original segment IDs. DO NOT merge, omit, or leave text empty.\n"
+    "5. Full Transcript Context: Maintain consistent character pronouns and honorifics (e.g., 'আপনি / তুমি / তোরা' in Bangla) consistently across the entire transcript.\n"
+    "6. Return valid JSON matching this schema strictly: {{\"segments\": [{{\"id\": 1, \"text\": \"translated text in {target_language}\"}}]}}"
 )
 
 

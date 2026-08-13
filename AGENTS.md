@@ -14,6 +14,9 @@ This project is a Python-based video processing pipeline that generates AI-corre
 - **Modularity:** Do not write monolithic scripts. Each step (extraction, transcription, correction, generation) must be a standalone function that accepts inputs and returns structured data.
 - **Error Handling:** Use `try/except` blocks for all external system calls (FFmpeg, local LLM, file I/O). Do not let the program crash silently.
 - **No Hallucinations:** When generating data schemas, strictly follow the provided `pydantic` models. 
+- **Single-Prompt Cloud LLM Optimization:** For Cloud LLM Providers (`gemini`, `puter`), send the complete transcript in a single prompt call (`batch_size = len(segments)`) to minimize API requests, eliminate 429 rate limit errors, and maximize translation context quality.
+- **Timestamp Boundary Protection:** Timestamps (`start`, `end`) MUST remain protected in Python memory. LLM payloads send ONLY `id` and `text`. Output segment texts map 1-to-1 back to original timing boundaries without breaking timestamp integrity.
+- **Natural Native Translation:** Prompts must strictly demand fluent, natural, colloquial native translation (e.g. natural Bangla phrasing) without awkward word-for-word literal translation. 
 
 ## Data Handoff Standard
 All modules must pass subtitle data using this structure (List of Dictionaries):

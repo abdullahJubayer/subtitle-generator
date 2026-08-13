@@ -40,7 +40,12 @@ def correct_grammar(
         int(seg["id"]): str(seg["text"]) for seg in segments
     }
 
-    batch_size = 20
+    provider_clean = (provider or "ollama").strip().lower()
+    if provider_clean in ("gemini", "puter"):
+        batch_size = len(segments)  # Single prompt full-transcript execution for Cloud LLMs
+    else:
+        batch_size = 20  # Batching for local Ollama models
+
     total_batches = (len(segments) + batch_size - 1) // batch_size
     is_translation = target_language.strip().lower() not in ("english", "en")
 
