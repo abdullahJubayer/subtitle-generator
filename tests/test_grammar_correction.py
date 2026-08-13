@@ -104,8 +104,8 @@ class TestGrammarCorrection(unittest.TestCase):
 
         correct_grammar(segments, model_name="llama3.1", provider="ollama")
 
-        # Expect 3 batch calls (20 + 20 + 10 segments)
-        self.assertEqual(mock_chat.call_count, 3)
+        # Expect 5 batch calls for 50 segments with batch_size=10
+        self.assertEqual(mock_chat.call_count, 5)
 
     def test_correct_grammar_empty_input(self):
         result = correct_grammar([])

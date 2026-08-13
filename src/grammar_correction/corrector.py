@@ -44,7 +44,7 @@ def correct_grammar(
     if provider_clean in ("gemini", "puter"):
         batch_size = len(segments)  # Single prompt full-transcript execution for Cloud LLMs
     else:
-        batch_size = 20  # Batching for local Ollama models
+        batch_size = 10  # 10 segments per batch for local models to prevent segment merging
 
     total_batches = (len(segments) + batch_size - 1) // batch_size
     is_translation = target_language.strip().lower() not in ("english", "en")
@@ -109,10 +109,21 @@ def correct_grammar(
             if content:
                 parsed_response = SubtitleResponse.model_validate_json(content)
                 adapted_count = 0
-                for item in parsed_response.segments:
+                res_segs = parsed_response.segments
+
+                # Positional + ID alignment guard:
+                # If output segment count matches batch size, map by array index idx to guarantee 100% timestamp alignment
+                use_positional_mapping = len(res_segs) == len(batch)
+                for idx, item in enumerate(res_segs):
                     if item.text and item.text.strip():
-                        corrected_map[item.id] = item.text.strip()
-                        adapted_count += 1
+                        if use_positional_mapping and idx < len(batch):
+                            target_id = int(batch[idx]["id"])
+                        else:
+                            target_id = item.id
+
+                        if target_id in corrected_map:
+                            corrected_map[target_id] = item.text.strip()
+                            adapted_count += 1
                 logger.info(
                     "  ✓ LLM Batch %d/%d successfully processed (%d segments adapted)",
                     batch_index,
