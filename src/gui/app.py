@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSplitter,
+    QStackedWidget,
     QTabWidget,
     QTextEdit,
     QVBoxLayout,
@@ -200,21 +201,62 @@ class SubtitleGeneratorApp(QMainWindow):
         self._init_ui()
 
     def _init_ui(self) -> None:
-        main_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.setCentralWidget(main_splitter)
+        central_widget = QWidget()
+        central_layout = QVBoxLayout(central_widget)
+        central_layout.setContentsMargins(12, 12, 12, 12)
+        central_layout.setSpacing(10)
+        self.setCentralWidget(central_widget)
 
-        # Left Panel: Controls, Settings & Logs
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(16, 16, 16, 16)
-        left_layout.setSpacing(12)
+        # Step Navigation Bar at top
+        nav_bar = QHBoxLayout()
+        nav_bar.setSpacing(8)
+
+        self.btn_step1 = QPushButton("1. Setup & Pipeline")
+        self.btn_step1.setStyleSheet(
+            "font-weight: bold; padding: 6px 14px; border-radius: 6px; background-color: #313244; color: #89b4fa;"
+        )
+        self.btn_step1.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+
+        self.btn_step2 = QPushButton("2. Line Conversion Studio")
+        self.btn_step2.setStyleSheet(
+            "font-weight: bold; padding: 6px 14px; border-radius: 6px; background-color: #313244; color: #a6adc8;"
+        )
+        self.btn_step2.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+
+        self.btn_step3 = QPushButton("3. Video Player & Export")
+        self.btn_step3.setStyleSheet(
+            "font-weight: bold; padding: 6px 14px; border-radius: 6px; background-color: #313244; color: #a6adc8;"
+        )
+        self.btn_step3.clicked.connect(lambda: self.stack.setCurrentIndex(2))
+
+        nav_bar.addWidget(self.btn_step1)
+        nav_bar.addWidget(self.btn_step2)
+        nav_bar.addWidget(self.btn_step3)
+        nav_bar.addStretch(1)
+        central_layout.addLayout(nav_bar)
+
+        self.stack = QStackedWidget()
+        self.stack.currentChanged.connect(self._on_stage_changed)
+        central_layout.addWidget(self.stack, stretch=1)
+
+        # ----------------------------------------------------
+        # PAGE 0: Setup & Pipeline Settings Page
+        # ----------------------------------------------------
+        page_setup = QWidget()
+        setup_layout = QHBoxLayout(page_setup)
+        setup_layout.setContentsMargins(0, 0, 0, 0)
+
+        setup_left = QWidget()
+        setup_left_layout = QVBoxLayout(setup_left)
+        setup_left_layout.setContentsMargins(8, 8, 8, 8)
+        setup_left_layout.setSpacing(10)
 
         # Header Title
-        header_label = QLabel("🎬 Subtitle Generator AI")
+        header_label = QLabel("Subtitle Generator AI")
         header_label.setStyleSheet(
-            "font-size: 22px; font-weight: bold; color: #89b4fa; padding-bottom: 4px;"
+            "font-size: 20px; font-weight: bold; color: #89b4fa; padding-bottom: 4px;"
         )
-        left_layout.addWidget(header_label)
+        setup_left_layout.addWidget(header_label)
 
         # 1. File Selector Group
         file_group = QGroupBox("Input Video")
@@ -229,7 +271,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
         file_layout.addWidget(self.file_path_edit)
         file_layout.addWidget(self.browse_button)
-        left_layout.addWidget(file_group)
+        setup_left_layout.addWidget(file_group)
 
         # 2. Settings Panel Group
         settings_group = QGroupBox("Pipeline Settings")
@@ -306,7 +348,7 @@ class SubtitleGeneratorApp(QMainWindow):
         ollama_layout.addWidget(self.ollama_combo)
         settings_layout.addWidget(self.ollama_container)
 
-        # Container Widget for API Key Field (Automated via .env)
+        # Container Widget for API Key Field
         self.api_key_container = QWidget()
         api_key_layout = QHBoxLayout(self.api_key_container)
         api_key_layout.setContentsMargins(0, 0, 0, 0)
@@ -321,29 +363,28 @@ class SubtitleGeneratorApp(QMainWindow):
         self.api_key_edit.textChanged.connect(self._on_api_key_changed)
         api_key_layout.addWidget(api_key_label)
         api_key_layout.addWidget(self.api_key_edit)
-        # Note: self.api_key_container is intentionally NOT added to settings_layout to keep the UI clean.
 
         self.provider_combo.currentIndexChanged.connect(self._on_provider_changed)
         self.enable_llm_check.toggled.connect(self._update_llm_visibility)
         self._update_llm_visibility()
 
-        # Offload dynamic model discovery to background QThread
+        # Offload dynamic model discovery
         self._fetch_thread = OllamaModelFetcherThread(self)
         self._fetch_thread.models_fetched.connect(self._on_ollama_models_fetched)
         self._fetch_thread.start()
 
-        left_layout.addWidget(settings_group)
+        setup_left_layout.addWidget(settings_group)
 
         # 3. Action Controls
         self.start_button = QPushButton("Start Subtitle Pipeline")
         self.start_button.setStyleSheet(
-            "font-size: 14px; padding: 10px; background-color: #a6e3a1; color: #11111b;"
+            "font-size: 14px; padding: 10px; background-color: #a6e3a1; color: #11111b; font-weight: bold; border-radius: 6px;"
         )
         self.start_button.clicked.connect(self._on_start_pipeline)
-        left_layout.addWidget(self.start_button)
+        setup_left_layout.addWidget(self.start_button)
 
-        # 4. Progress Section & Consoles
-        progress_group = QGroupBox("Progress & Consoles")
+        # Progress Section
+        progress_group = QGroupBox("Pipeline Status")
         progress_layout = QVBoxLayout(progress_group)
 
         self.stage_label = QLabel("Status: Idle")
@@ -352,6 +393,10 @@ class SubtitleGeneratorApp(QMainWindow):
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
+
+        progress_layout.addWidget(self.stage_label)
+        progress_layout.addWidget(self.progress_bar)
+        setup_left_layout.addWidget(progress_group)
 
         # Console Tab Widget (Interactive Studio, Whisper Log, LLM Output, SRT Preview)
         self.console_tabs = QTabWidget()
@@ -373,26 +418,82 @@ class SubtitleGeneratorApp(QMainWindow):
 
         self.log_console = self.whisper_console.log_area
 
-        progress_layout.addWidget(self.stage_label)
-        progress_layout.addWidget(self.progress_bar)
-        progress_layout.addWidget(self.console_tabs)
+        # Right side setup logs & consoles
+        setup_right = QWidget()
+        setup_right_layout = QVBoxLayout(setup_right)
+        setup_right_layout.setContentsMargins(8, 8, 8, 8)
+        setup_right_layout.addWidget(self.console_tabs)
 
-        left_layout.addWidget(progress_group, stretch=1)
+        setup_layout.addWidget(setup_left, stretch=1)
+        setup_layout.addWidget(setup_right, stretch=1)
+        self.stack.addWidget(page_setup)
 
-        # Right Panel: Video Preview Section
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(16, 16, 16, 16)
+        # ----------------------------------------------------
+        # PAGE 1: Full Screen Dedicated Interactive Studio Page
+        # ----------------------------------------------------
+        page_studio = QWidget()
+        studio_layout = QVBoxLayout(page_studio)
+        studio_layout.setContentsMargins(12, 12, 12, 12)
+        studio_layout.setSpacing(10)
 
-        preview_header = QLabel("Video Preview & Subtitles")
-        preview_header.setStyleSheet(
-            "font-size: 16px; font-weight: bold; color: #89b4fa; padding-bottom: 4px;"
+        studio_header_layout = QHBoxLayout()
+        studio_header = QLabel("Interactive Line-by-Line Subtitle Studio")
+        studio_header.setStyleSheet("font-size: 18px; font-weight: bold; color: #89b4fa;")
+
+        self.build_srt_top_btn = QPushButton("Build & Load .SRT")
+        self.build_srt_top_btn.setStyleSheet(
+            "background-color: #a6e3a1; color: #11111b; font-weight: bold; padding: 8px 16px; border-radius: 6px;"
         )
-        right_layout.addWidget(preview_header)
+        self.build_srt_top_btn.clicked.connect(self._on_build_and_load_srt)
+
+        studio_header_layout.addWidget(studio_header)
+        studio_header_layout.addStretch(1)
+        studio_header_layout.addWidget(self.build_srt_top_btn)
+        studio_layout.addLayout(studio_header_layout)
+
+        # Prominent Studio Table occupying full screen area
+        studio_layout.addWidget(self.studio_table, stretch=1)
+
+        # Bottom Bar: Large Build & Load .SRT action button
+        studio_bottom_layout = QHBoxLayout()
+        self.build_srt_btn = QPushButton("Build & Load .SRT into Player")
+        self.build_srt_btn.setStyleSheet(
+            "font-size: 14px; font-weight: bold; background-color: #a6e3a1; color: #11111b; padding: 12px 24px; border-radius: 6px;"
+        )
+        self.build_srt_btn.clicked.connect(self._on_build_and_load_srt)
+        studio_bottom_layout.addStretch(1)
+        studio_bottom_layout.addWidget(self.build_srt_btn)
+        studio_bottom_layout.addStretch(1)
+        studio_layout.addLayout(studio_bottom_layout)
+
+        self.stack.addWidget(page_studio)
+
+        # ----------------------------------------------------
+        # PAGE 2: Video Player & Subtitle Review Page
+        # ----------------------------------------------------
+        page_player = QWidget()
+        player_layout = QVBoxLayout(page_player)
+        player_layout.setContentsMargins(12, 12, 12, 12)
+        player_layout.setSpacing(10)
+
+        player_header_layout = QHBoxLayout()
+        player_header = QLabel("Video Subtitle Player & Preview")
+        player_header.setStyleSheet("font-size: 18px; font-weight: bold; color: #89b4fa;")
+
+        self.back_to_studio_btn = QPushButton("Back to Line Studio")
+        self.back_to_studio_btn.setStyleSheet(
+            "background-color: #313244; color: #89b4fa; font-weight: bold; padding: 6px 14px; border-radius: 6px;"
+        )
+        self.back_to_studio_btn.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+
+        player_header_layout.addWidget(player_header)
+        player_header_layout.addStretch(1)
+        player_header_layout.addWidget(self.back_to_studio_btn)
+        player_layout.addLayout(player_header_layout)
 
         self.video_player = VideoPlayerWidget()
         self.video_player.setEnabled(False)
-        right_layout.addWidget(self.video_player, stretch=1)
+        player_layout.addWidget(self.video_player, stretch=1)
 
         # Action bar for SRT download/export
         srt_action_layout = QHBoxLayout()
@@ -407,11 +508,9 @@ class SubtitleGeneratorApp(QMainWindow):
 
         srt_action_layout.addWidget(self.export_button)
         srt_action_layout.addWidget(self.load_srt_button)
-        right_layout.addLayout(srt_action_layout)
+        player_layout.addLayout(srt_action_layout)
 
-        # Add panels to split container
-        main_splitter.addWidget(left_widget)
-        main_splitter.addWidget(right_widget)
+        self.stack.addWidget(page_player)
     def _on_provider_changed(self, index: int = 0) -> None:
         """Handler when LLM Provider selection changes."""
         provider_text = self.provider_combo.currentText()
@@ -612,9 +711,51 @@ class SubtitleGeneratorApp(QMainWindow):
 
         self.worker.start()
 
+    def _on_stage_changed(self, index: int) -> None:
+        """Update stage navigation button styles when active page changes."""
+        buttons = [self.btn_step1, self.btn_step2, self.btn_step3]
+        for idx, btn in enumerate(buttons):
+            if idx == index:
+                btn.setStyleSheet(
+                    "font-weight: bold; padding: 6px 14px; border-radius: 6px; background-color: #89b4fa; color: #11111b;"
+                )
+            else:
+                btn.setStyleSheet(
+                    "font-weight: bold; padding: 6px 14px; border-radius: 6px; background-color: #313244; color: #a6adc8;"
+                )
+
     def _on_segments_transcribed(self, segments: list) -> None:
-        """Slot receiver when Whisper transcription completes to populate Interactive Studio table."""
+        """Slot receiver when Whisper transcription completes: populates Studio table and switches to Full Screen Studio view."""
         self.studio_table.load_segments(segments)
+        self.stack.setCurrentIndex(1)  # Automatically switch to Stage 2: Full Screen Line Studio!
+
+    def _on_build_and_load_srt(self) -> None:
+        """Build final .srt file from active Studio segments, load into Video Player, and switch to Player view."""
+        active_segs = self.studio_table.get_active_segments()
+        if not active_segs:
+            QMessageBox.warning(
+                self,
+                "No Subtitle Segments",
+                "No subtitle segments available to build .SRT file.",
+            )
+            return
+
+        from src.srt_generation.generator import generate_srt_content
+        srt_content = generate_srt_content(active_segs)
+        self.srt_console.set_srt_content(srt_content)
+
+        if self.selected_video_path and os.path.exists(self.selected_video_path):
+            import tempfile
+            with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".srt", encoding="utf-8") as f:
+                f.write(srt_content)
+                temp_srt = f.name
+            self.generated_srt_path = temp_srt
+            self.export_button.setEnabled(True)
+            self.video_player.setEnabled(True)
+            self.video_player.load_video(self.selected_video_path, temp_srt)
+            self.video_player.play()
+
+        self.stack.setCurrentIndex(2)  # Automatically switch to Stage 3: Full Screen Video Player & Export!
 
     def _on_single_convert_requested(self, seg_id: int, segment: dict) -> None:
         """Handle single segment line conversion request via SingleSegmentWorker."""
