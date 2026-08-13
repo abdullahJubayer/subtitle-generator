@@ -82,12 +82,8 @@ class TestGrammarCorrection(unittest.TestCase):
         _, kwargs = mock_chat.call_args
         messages = kwargs["messages"]
         system_prompt = messages[0]["content"]
-        expected_prompt = (
-            "You are an expert translator and subtitle editor. Translate and adapt "
-            "the subtitle text into fluent, natural, idiomatically accurate Spanish. "
-            "DO NOT change IDs. Keep the exact same number of segments."
-        )
-        self.assertEqual(system_prompt, expected_prompt)
+        self.assertIn("Spanish", system_prompt)
+        self.assertIn("ABSOLUTELY NO literal word-for-word or robotic machine translations", system_prompt)
 
     @patch("ollama.chat")
     def test_correct_grammar_english_prompt(self, mock_chat):
@@ -108,11 +104,7 @@ class TestGrammarCorrection(unittest.TestCase):
         _, kwargs = mock_chat.call_args
         messages = kwargs["messages"]
         system_prompt = messages[0]["content"]
-        expected_prompt = (
-            "You are a subtitle editor. Correct grammar. "
-            "DO NOT change IDs. Keep the exact same number of segments."
-        )
-        self.assertEqual(system_prompt, expected_prompt)
+        self.assertIn("film and TV subtitle editor", system_prompt)
 
 
 if __name__ == "__main__":

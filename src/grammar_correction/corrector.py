@@ -1,6 +1,7 @@
 import json
 import logging
 import ollama
+from src.grammar_correction.prompts import build_system_prompt
 from src.schemas import SegmentDict, SubtitleResponse, SubtitleSegment
 
 logger = logging.getLogger(__name__)
@@ -37,15 +38,7 @@ def correct_grammar(
         ]
 
         try:
-            if target_language.lower() != "english":
-                prompt_system = (
-                    f"You are an expert translator and subtitle editor. Translate and adapt the subtitle text into fluent, natural, idiomatically accurate {target_language}. DO NOT change IDs. Keep the exact same number of segments."
-                )
-            else:
-                prompt_system = (
-                    "You are a subtitle editor. Correct grammar. "
-                    "DO NOT change IDs. Keep the exact same number of segments."
-                )
+            prompt_system = build_system_prompt(target_language)
             messages = [
                 {"role": "system", "content": prompt_system},
                 {"role": "user", "content": json.dumps(payload)},

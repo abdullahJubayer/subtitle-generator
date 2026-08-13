@@ -5,5 +5,6 @@ from src.grammar_correction.corrector import (
     SubtitleSegment,
     correct_grammar,
 )
+from src.grammar_correction.prompts import build_system_prompt
 
-__all__ = ["correct_grammar", "SubtitleSegment", "SubtitleResponse"]
+__all__ = ["correct_grammar", "build_system_prompt", "SubtitleSegment", "SubtitleResponse"]
