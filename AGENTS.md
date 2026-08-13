@@ -50,14 +50,16 @@ Use the standard Python `subprocess` module. Do not use heavy wrapper libraries 
 ---
 
 ## Subagent Team Roles & Model Configuration
-- **`dev1` (Parallel Developer 1):** Implements module features (Module A & B) in parallel, writes code in `src/`, adheres to Python 3.10+ typing and Pydantic schemas.
-- **`dev2` (Parallel Developer 2):** Implements module features (Module C & D) in parallel, writes code in `src/`, adheres to Python 3.10+ typing and Pydantic schemas.
-- **`seniorDev` (Senior Reviewer Subagent):** High-reasoning model (`pro`). Evaluates code quality, plan alignment, type safety, security, and PEP-8 best practices.
-- **`qa` (QA & Testing Subagent):** Executes test suites, validates CLI flags, checks timestamp integrity, and verifies edge cases.
+- **`dev1` (Core Feature Developer 1):** Implements module features (Audio Extraction & Transcription) in parallel, writes code in `src/`, adheres to Python 3.10+ typing and Pydantic schemas.
+- **`dev2` (GUI & Integration Developer 2):** Implements module features (Grammar Correction, Desktop GUI, CLI Flags) in parallel, writes code in `src/`, adheres to Python 3.10+ typing and Pydantic schemas.
+- **`techlead` (System Architect & Tech Lead):** High-reasoning model (`pro`). Responsible for architecture roadmap planning, issue scoping, phase design, and team coordination.
+- **`reviewer` (Senior Code Reviewer):** High-reasoning model (`pro`). Evaluates code quality, plan alignment, type safety, security, and PEP-8 best practices.
+- **`qa` (QA & Testing Specialist):** Executes test suites, validates CLI flags, checks timestamp integrity, and verifies edge cases.
 
-## Subagent Workflow Pipeline (`dev1`/`dev2` -> `seniorDev` -> `qa`)
-1. **Parallel Implementation (`dev1` / `dev2`):** Pick feature issues in parallel, set status to `In Progress`, and implement code under `src/`.
-2. **Review (`seniorDev` - `pro` model):** Inspects diff & code quality. If critical issues exist, `dev1`/`dev2` fix them.
-3. **QA & Testing (`qa`):** Runs empirical test suite & CLI verification.
+## Subagent Workflow Pipeline (`techlead` -> `dev1`/`dev2` -> `reviewer` -> `qa`)
+1. **Planning (`techlead` - `pro` model):** Formulates implementation plan, scopes issues, and assigns parallel tasks.
+2. **Parallel Implementation (`dev1` / `dev2`):** Pick feature issues in parallel, set status to `In Progress`, and implement code under `src/`.
+3. **Code Review (`reviewer` - `pro` model):** Inspects diff & code quality. If critical issues exist, `dev1`/`dev2` fix them.
+4. **QA & Testing (`qa`):** Runs empirical test suite & CLI verification.
    - **Pass:** Move card to `Done` & close GitHub issue.
    - **Fail:** Move card to `Backlog` & log failure reason on GitHub issue.

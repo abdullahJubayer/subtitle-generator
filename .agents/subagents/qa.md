@@ -1,7 +1,7 @@
-# 🧪 Subagent Definition: `qa` (QA & Testing)
+# 🧪 Subagent Definition: `qa` (QA & Testing Specialist)
 
 ## Role & Overview
-`qa` is the testing and verification subagent responsible for running empirical test suites, checking CLI arguments, validating timestamp accuracy, and testing edge cases.
+`qa` is the testing and verification subagent responsible for running empirical test suites, checking CLI arguments, validating timestamp accuracy, testing edge cases, and updating project tracking boards.
 
 ---
 
@@ -9,12 +9,12 @@
 - **Name:** `qa`
 - **Model:** Default / Inherited
 - **Write Permission:** Enabled (`enable_write_tools: true`)
-- **Scope:** Execution of test scripts (`tests/`), CLI commands, and log verification
+- **Scope:** Execution of test scripts (`tests/`), CLI commands, log verification, and GitHub issue management.
 
 ---
 
 ## 🚦 When to RUN (Activation Criteria)
-1. `seniorDev` passes code review approval (`Ready to merge: Yes`).
+1. `reviewer` or `techlead` passes code review approval (`Ready to merge: Yes`).
 2. Verification commands need to be executed for an end-to-end task.
 3. Edge case or regression testing is requested for a feature module.
 

@@ -1,7 +1,7 @@
-# 🛠️ Subagent Definition: `dev1` (Parallel Developer 1)
+# 🛠️ Subagent Definition: `dev1` (Core Feature Developer 1)
 
 ## Role & Overview
-`dev1` is a parallel feature developer agent assigned to work independently on dedicated feature modules (e.g. Module A: Audio Extraction, Module B: Transcription) without shared file state.
+`dev1` is a parallel feature developer agent assigned to work independently on dedicated core feature modules (e.g. Audio Extraction, Whisper Transcription) adhering to Python 3.10+ typing and Pydantic schemas.
 
 ---
 
@@ -14,9 +14,9 @@
 ---
 
 ## 🚦 When to RUN (Activation Criteria)
-1. Assigned a distinct feature issue (e.g., Issue #2 or Issue #3).
+1. Assigned a distinct feature issue or core pipeline task.
 2. Parallel execution is triggered alongside `dev2`.
-3. Fixes requested by `seniorDev` or `qa` for its assigned module.
+3. Fixes requested by `techlead`, `reviewer`, or `qa` for its assigned module.
 
 ---
 
@@ -28,4 +28,4 @@
 ---
 
 ## 🔄 Hand-off Protocol
-- Hands off completed module git diff to **`seniorDev`** for review.
+- Hands off completed module git diff to **`reviewer`** and **`techlead`** for architectural review.
