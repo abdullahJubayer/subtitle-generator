@@ -613,8 +613,56 @@ class TestGUIComponents(unittest.TestCase):
         self.assertEqual(received_data[0][2], "ollama")
         self.assertEqual(received_data[0][5], [("in", "out")])
 
+    def test_stage_transitions_manual_navigation(self):
+        """Verify navigation buttons correctly switch between Stage 0 (Setup), Stage 1 (Studio), and Stage 2 (Player)."""
+        self.assertEqual(self.app.stack.currentIndex(), 0)
+
+        # Switch to Stage 1 (Studio)
+        self.app.btn_step2.click()
+        self.assertEqual(self.app.stack.currentIndex(), 1)
+
+        # Switch to Stage 2 (Player)
+        self.app.btn_step3.click()
+        self.assertEqual(self.app.stack.currentIndex(), 2)
+
+        # Back to Stage 0 (Setup)
+        self.app.btn_step1.click()
+        self.assertEqual(self.app.stack.currentIndex(), 0)
+
+    def test_on_segments_transcribed_stage_transition(self):
+        """Verify _on_segments_transcribed loads segments into studio table and transitions to Stage 1."""
+        segments = [
+            {"id": 1, "start": 0.0, "end": 2.0, "text": "First line"},
+            {"id": 2, "start": 2.0, "end": 4.0, "text": "Second line"},
+        ]
+        self.assertEqual(self.app.stack.currentIndex(), 0)
+        self.app._on_segments_transcribed(segments)
+        self.assertEqual(self.app.stack.currentIndex(), 1)
+        self.assertEqual(self.app.studio_table.table.rowCount(), 2)
+        active = self.app.studio_table.get_active_segments()
+        self.assertEqual(len(active), 2)
+        self.assertEqual(active[0]["text"], "First line")
+
+    def test_on_build_and_load_srt_stage_transition(self):
+        """Verify _on_build_and_load_srt builds SRT from active studio segments and transitions to Stage 2."""
+        segments = [
+            {"id": 1, "start": 0.0, "end": 2.0, "text": "Sample active line"},
+        ]
+        self.app.studio_table.load_segments(segments)
+        self.app.selected_video_path = "/tmp/sample.mp4"
+
+        with patch("os.path.exists", return_value=True), \
+             patch.object(self.app.video_player, "load_video") as mock_load, \
+             patch.object(self.app.video_player, "play") as mock_play:
+            self.app._on_build_and_load_srt()
+            self.assertEqual(self.app.stack.currentIndex(), 2)
+            self.assertIn("Sample active line", self.app.srt_console.get_srt_content())
+            mock_load.assert_called_once()
+            mock_play.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
