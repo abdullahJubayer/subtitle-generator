@@ -71,3 +71,13 @@ class TestInteractiveSubtitleTableWidget(unittest.TestCase):
         self.assertEqual(len(active), 2)
         self.assertEqual(active[0]["text"], "Hello World (Edited)")
         self.assertEqual(active[1]["text"], "This is a test")
+
+    def test_set_convert_all_running_toggle(self):
+        """Verify set_convert_all_running disables button and updates text."""
+        self.widget.set_convert_all_running(True, current=1, total=5)
+        self.assertFalse(self.widget.convert_all_btn.isEnabled())
+        self.assertIn("Status: Running (1/5)", self.widget.convert_all_btn.text())
+
+        self.widget.set_convert_all_running(False)
+        self.assertTrue(self.widget.convert_all_btn.isEnabled())
+        self.assertEqual(self.widget.convert_all_btn.text(), "Convert All Lines")

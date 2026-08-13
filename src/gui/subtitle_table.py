@@ -224,6 +224,26 @@ class InteractiveSubtitleTableWidget(QWidget):
         self.table.blockSignals(False)
         self.segments_changed.emit()
 
+    def set_convert_all_running(
+        self, is_running: bool, current: int = 0, total: int = 0
+    ) -> None:
+        """Update Convert All button disabled state and text while converting lines."""
+        if is_running:
+            self.convert_all_btn.setEnabled(False)
+            if total > 0:
+                self.convert_all_btn.setText(f"Status: Running ({current}/{total})...")
+            else:
+                self.convert_all_btn.setText("Status: Running...")
+            self.convert_all_btn.setStyleSheet(
+                "background-color: #45475a; color: #a6adc8; font-weight: bold; padding: 6px 12px; border-radius: 6px;"
+            )
+        else:
+            self.convert_all_btn.setEnabled(True)
+            self.convert_all_btn.setText("Convert All Lines")
+            self.convert_all_btn.setStyleSheet(
+                "background-color: #a6e3a1; color: #11111b; font-weight: bold; padding: 6px 12px; border-radius: 6px;"
+            )
+
     def set_segment_translating(self, segment_id: int) -> None:
         """Mark row status as 'Translating...'."""
         if segment_id not in self._row_map:
