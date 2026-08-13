@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 
 def timestamp_to_ms(time_str: str) -> int:
     """Convert an SRT timestamp string (HH:MM:SS,mmm or HH:MM:SS.mmm) to milliseconds."""
-    time_str = time_str.strip().replace(",", ".")
+    time_str = time_str.strip().replace("\ufeff", "").replace(",", ".")
     parts = time_str.split(":")
     if len(parts) != 3:
         return 0
     try:
-        hours = int(parts[0])
-        minutes = int(parts[1])
-        sec_parts = parts[2].split(".")
+        hours = int(parts[0].strip())
+        minutes = int(parts[1].strip())
+        sec_parts = parts[2].strip().split(".")
         seconds = int(sec_parts[0])
         millis = int(sec_parts[1].ljust(3, "0")[:3]) if len(sec_parts) > 1 else 0
         return (hours * 3600 + minutes * 60 + seconds) * 1000 + millis
@@ -42,7 +42,6 @@ def parse_srt_time(time_str: str) -> int:
     return timestamp_to_ms(time_str)
 
 
-
 def parse_srt(srt_path: str) -> List[Tuple[int, int, str]]:
     """Parse a .srt file into a list of tuples (start_ms, end_ms, text)."""
     subtitles: List[Tuple[int, int, str]] = []
@@ -52,12 +51,13 @@ def parse_srt(srt_path: str) -> List[Tuple[int, int, str]]:
         return subtitles
 
     try:
-        content = file_path.read_text(encoding="utf-8", errors="replace")
+        content = file_path.read_text(encoding="utf-8-sig", errors="replace")
     except Exception as e:
         logger.error("Failed to read SRT file '%s': %s", srt_path, e)
         return subtitles
 
-    blocks = re.split(r"\n\s*\n", content.strip())
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+    blocks = re.split(r"\n{2,}", content.strip())
     for block in blocks:
         lines = [line.strip() for line in block.strip().splitlines() if line.strip()]
         if not lines:
@@ -78,11 +78,12 @@ def parse_srt(srt_path: str) -> List[Tuple[int, int, str]]:
 
         start_ms = timestamp_to_ms(times[0])
         end_ms = timestamp_to_ms(times[1])
-        text = "\n".join(lines[time_index + 1 :])
+        text = "\n".join(lines[time_index + 1 :]).strip()
 
-        if end_ms >= start_ms:
+        if end_ms >= start_ms and text:
             subtitles.append((start_ms, end_ms, text))
 
+    logger.info("Successfully parsed %d subtitle segments from '%s'", len(subtitles), srt_path)
     return subtitles
 
 

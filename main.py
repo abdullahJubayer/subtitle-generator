@@ -21,6 +21,7 @@ def launch_gui() -> int:
     from PyQt6.QtWidgets import QApplication
     from src.gui.app import SubtitleGeneratorApp
 
+    setup_logging(verbose=True)
     app = QApplication(sys.argv)
     window = SubtitleGeneratorApp()
     window.show()
