@@ -46,6 +46,6 @@ A Python-based pipeline that extracts audio from video, transcribes it with time
 - [x] **Task 8.4:** Puter.js AI Provider Integration — Add Puter.js AI REST/SDK provider (`puter`) with 500+ model support (GPT-4o-mini, Claude 3.5 Sonnet, DeepSeek, etc.) in GUI and CLI.
 
 ## Phase 9: Dedicated Pipeline Module Console Windows (Whisper, LLM & SRT)
-- [ ] **Task 9.1:** Dedicated Whisper Console Window — Real-time segment transcription log console, detected language score, and segment timing inspector (Issue #13).
-- [ ] **Task 9.2:** Dedicated LLM Output Console Window — LLM prompt payload inspector, raw vs translated segment diff view, and provider performance telemetry (Issue #14).
-- [ ] **Task 9.3:** Dedicated SRT Output Console Window — Live `.srt` formatted text preview, timestamp integrity validator, and quick copy/export toolbar (Issue #15).
+- [x] **Task 9.1:** Dedicated Whisper Console Window — Real-time segment transcription log console, detected language score, and segment timing inspector (Issue #13).
+- [x] **Task 9.2:** Dedicated LLM Output Console Window — LLM prompt payload inspector, raw vs translated segment diff view, and provider performance telemetry (Issue #14).
+- [x] **Task 9.3:** Dedicated SRT Output Console Window — Live `.srt` formatted text preview, timestamp integrity validator, and quick copy/export toolbar (Issue #15).

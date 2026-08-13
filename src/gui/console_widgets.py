@@ -45,8 +45,17 @@ def verify_srt_integrity(content: str) -> tuple[bool, str]:
     if not ts_lines:
         return False, "No timestamp arrows ('-->') found"
 
-    ts_pattern = re.compile(r"^\d{2}:\d{2}:\d{2},\d{3}\s*-->\s*\d{2}:\d{2}:\d{2},\d{3}$")
-    valid_count = sum(1 for line in ts_lines if ts_pattern.match(line))
+    from src.gui.player import timestamp_to_ms
+
+    ts_pattern = re.compile(r"^(\d{2}:\d{2}:\d{2},\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2},\d{3})$")
+    valid_count = 0
+    for line in ts_lines:
+        m = ts_pattern.match(line)
+        if m:
+            start_ms = timestamp_to_ms(m.group(1))
+            end_ms = timestamp_to_ms(m.group(2))
+            if end_ms >= start_ms:
+                valid_count += 1
 
     if valid_count == len(ts_lines):
         return True, f"{len(ts_lines)} subtitle segments intact"

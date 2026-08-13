@@ -592,7 +592,6 @@ class SubtitleGeneratorApp(QMainWindow):
         self.stage_label.setText(f"Status: {stage_text}")
 
     def _on_log_emitted(self, msg: str):
-        self.log_console.append(msg)
         self.whisper_console.append_log(msg)
 
     def _on_pipeline_finished(self, video_path: str, srt_path: str):
