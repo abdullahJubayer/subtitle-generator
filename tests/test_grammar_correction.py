@@ -93,7 +93,7 @@ class TestGrammarCorrection(unittest.TestCase):
         mock_response.message.content = '{"segments": []}'
         mock_chat.return_value = mock_response
 
-        # Create 50 segments to test chunking (> 40 batch size)
+        # Create 50 segments to test chunking (> 20 batch size)
         segments: list[SegmentDict] = [
             {"id": i, "start": float(i), "end": float(i + 1), "text": f"segment {i}"}
             for i in range(1, 51)
@@ -101,8 +101,8 @@ class TestGrammarCorrection(unittest.TestCase):
 
         correct_grammar(segments, model_name="llama3.1", provider="ollama")
 
-        # Expect 2 batch calls (40 segments + 10 segments)
-        self.assertEqual(mock_chat.call_count, 2)
+        # Expect 3 batch calls (20 + 20 + 10 segments)
+        self.assertEqual(mock_chat.call_count, 3)
 
     def test_correct_grammar_empty_input(self):
         result = correct_grammar([])

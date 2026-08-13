@@ -34,7 +34,7 @@ def correct_grammar(
         int(seg["id"]): str(seg["text"]) for seg in segments
     }
 
-    batch_size = 40
+    batch_size = 20
     total_batches = (len(segments) + batch_size - 1) // batch_size
     is_translation = target_language.strip().lower() not in ("english", "en")
 
@@ -95,13 +95,16 @@ def correct_grammar(
 
             if content:
                 parsed_response = SubtitleResponse.model_validate_json(content)
+                adapted_count = 0
                 for item in parsed_response.segments:
-                    corrected_map[item.id] = item.text
+                    if item.text and item.text.strip():
+                        corrected_map[item.id] = item.text.strip()
+                        adapted_count += 1
                 logger.info(
                     "  ✓ LLM Batch %d/%d successfully processed (%d segments adapted)",
                     batch_index,
                     total_batches,
-                    len(parsed_response.segments),
+                    adapted_count,
                 )
             else:
                 logger.warning(
