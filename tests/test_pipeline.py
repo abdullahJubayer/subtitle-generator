@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 from src.orchestration.pipeline import run_pipeline
 from src.schemas import SegmentDict
 
@@ -49,6 +49,7 @@ class TestPipeline(unittest.TestCase):
                 target_language="English",
                 provider="ollama",
                 api_key=None,
+                llm_callback=ANY,
             )
             mock_generate.assert_called_once_with(
                 [{"id": 1, "start": 0.0, "end": 2.5, "text": "Hello, world!"}],
@@ -139,6 +140,7 @@ class TestPipeline(unittest.TestCase):
                 target_language="Bangla",
                 provider="ollama",
                 api_key=None,
+                llm_callback=ANY,
             )
             self.assertEqual(result, expected_srt)
         finally:
@@ -182,6 +184,7 @@ class TestPipeline(unittest.TestCase):
                 target_language="English",
                 provider="gemini",
                 api_key="test_api_key",
+                llm_callback=ANY,
             )
             self.assertEqual(result, expected_srt)
         finally:

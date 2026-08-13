@@ -61,6 +61,7 @@ class PipelineWorker(QThread):
     log_emitted = pyqtSignal(str)
     pipeline_finished = pyqtSignal(str)
     pipeline_error = pyqtSignal(str)
+    llm_data_emitted = pyqtSignal(str, str, str, str, str, list)
 
     def __init__(
         self,
@@ -98,6 +99,18 @@ class PipelineWorker(QThread):
         root_logger.setLevel(logging.INFO)
         root_logger.addHandler(handler)
 
+        def _llm_cb(
+            payload_json: str,
+            response_json: str,
+            provider: str,
+            model_name: str,
+            batch_info: str,
+            diff_items: list,
+        ) -> None:
+            self.llm_data_emitted.emit(
+                payload_json, response_json, provider, model_name, batch_info, diff_items
+            )
+
         try:
             self.progress_updated.emit(5, "Initializing pipeline...")
             self.progress_changed.emit(5, "Initializing pipeline...")
@@ -111,6 +124,7 @@ class PipelineWorker(QThread):
                 target_language=self.target_language,
                 llm_provider=self.llm_provider,
                 api_key=self.api_key,
+                llm_callback=_llm_cb,
             )
             self.progress_updated.emit(100, "Pipeline executed successfully!")
             self.progress_changed.emit(100, "Pipeline executed successfully!")

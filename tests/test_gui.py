@@ -2,12 +2,13 @@
 
 import os
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from PyQt6.QtWidgets import QApplication
 
 import main
 from src.gui.app import SubtitleGeneratorApp
+from src.gui.console_widgets import SrtConsoleWidget, WhisperConsoleWidget, verify_srt_integrity
 from src.gui.player import VideoPlayerWidget, parse_srt_time
 from src.gui.worker import PipelineWorker
 
@@ -175,6 +176,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="Bangla (Bengali)",
                 llm_provider="ollama",
                 api_key=None,
+                llm_callback=ANY,
             )
 
     def test_provider_selection_toggles_models_and_api_key_visibility(self):
@@ -245,6 +247,7 @@ class TestGUIComponents(unittest.TestCase):
                 target_language="English",
                 llm_provider="gemini",
                 api_key="cloud-api-key-xyz",
+                llm_callback=ANY,
             )
 
     def test_puter_provider_selection(self):
@@ -403,6 +406,221 @@ class TestGUIComponents(unittest.TestCase):
                 api_key=None,
             )
 
+    def test_whisper_console_widget(self):
+        """Verify WhisperConsoleWidget telemetry updating, logging, filtering, and export signal."""
+        widget = WhisperConsoleWidget()
+        widget.update_telemetry("French", 0.92, 45.67, "medium")
+        self.assertIn("French", widget.telemetry_label.text())
+        self.assertIn("0.92", widget.telemetry_label.text())
+        self.assertIn("45.67s", widget.telemetry_label.text())
+        self.assertIn("medium", widget.telemetry_label.text())
+
+        widget.append_log("Segment 1: Transcription started")
+        widget.append_log("Segment 2: Processing audio frames")
+        self.assertIn("Transcription started", widget.get_log_text())
+        self.assertIn("Processing audio frames", widget.get_log_text())
+
+        # Test search filter
+        widget.search_input.setText("audio")
+        self.assertIn("Processing audio frames", widget.log_area.toPlainText())
+        self.assertNotIn("Transcription started", widget.log_area.toPlainText())
+
+        widget.search_input.setText("")
+        self.assertIn("Transcription started", widget.log_area.toPlainText())
+
+        # Test export signal & method
+        mock_slot = MagicMock()
+        widget.export_requested.connect(mock_slot)
+        import tempfile
+        with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".txt") as temp_file:
+            temp_path = temp_file.name
+        try:
+            res = widget.export_log(temp_path)
+            self.assertTrue(res)
+            mock_slot.assert_called_once_with(temp_path)
+            with open(temp_path, "r", encoding="utf-8") as f:
+                saved_content = f.read()
+            self.assertIn("Transcription started", saved_content)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+        # Test clear log
+        widget.clear_log()
+        self.assertEqual(widget.get_log_text(), "")
+        self.assertEqual(widget.log_area.toPlainText(), "")
+
+    def test_srt_console_widget(self):
+        """Verify SrtConsoleWidget SRT loading, timestamp integrity status, copy, and save features."""
+        widget = SrtConsoleWidget()
+        valid_srt = "1\n00:00:01,000 --> 00:00:04,000\nTest subtitle line.\n\n"
+        widget.set_srt_content(valid_srt)
+
+        self.assertEqual(widget.get_srt_content(), valid_srt)
+        self.assertIn("Valid", widget.integrity_label.text())
+
+        # Test manual update integrity status
+        widget.update_integrity_status(False, "Invalid sequence")
+        self.assertIn("Invalid", widget.integrity_label.text())
+        self.assertIn("Invalid sequence", widget.integrity_label.text())
+
+        # Test copy to clipboard
+        widget.copy_button.click()
+        clipboard_text = _app.clipboard().text()
+        self.assertEqual(clipboard_text, valid_srt)
+
+        # Test save .srt file button
+        import tempfile
+        with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".srt") as temp_file:
+            save_target = temp_file.name
+        try:
+            with patch("src.gui.console_widgets.QFileDialog.getSaveFileName", return_value=(save_target, "SubRip")):
+                widget.save_button.click()
+            with open(save_target, "r", encoding="utf-8") as f:
+                file_content = f.read()
+            self.assertEqual(file_content, valid_srt)
+        finally:
+            if os.path.exists(save_target):
+                os.remove(save_target)
+
+    def test_app_console_tabs_integration(self):
+        """Verify QTabWidget embedding WhisperConsoleWidget, LlmConsoleWidget, and SrtConsoleWidget in SubtitleGeneratorApp."""
+        self.assertTrue(hasattr(self.app, "console_tabs"))
+        self.assertTrue(hasattr(self.app, "whisper_console"))
+        self.assertTrue(hasattr(self.app, "llm_console"))
+        self.assertTrue(hasattr(self.app, "srt_console"))
+
+        self.assertEqual(self.app.console_tabs.count(), 3)
+        self.assertEqual(self.app.console_tabs.tabText(0), "🎙️ Whisper Log")
+        self.assertEqual(self.app.console_tabs.tabText(1), "🧠 LLM Telemetry & Diffs")
+        self.assertEqual(self.app.console_tabs.tabText(2), "📄 SRT Preview")
+
+        # Test log routing
+        self.app._on_log_emitted("[Step 3/4] LLM grammar correction starting...")
+        self.assertIn("LLM grammar correction starting", self.app.whisper_console.get_log_text())
+
+        # Test srt auto-loading on pipeline finish
+        import tempfile
+        with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".srt") as temp_srt:
+            temp_srt.write("1\n00:00:01,000 --> 00:00:03,000\nTab preview text\n\n")
+            temp_srt_path = temp_srt.name
+
+        try:
+            with patch.object(self.app.video_player, "load_video"), \
+                 patch.object(self.app.video_player, "play"), \
+                 patch("src.gui.app.QMessageBox.information"):
+                self.app._on_pipeline_finished("/tmp/dummy.mp4", temp_srt_path)
+            self.assertIn("Tab preview text", self.app.srt_console.get_srt_content())
+            self.assertIn("Valid", self.app.srt_console.integrity_label.text())
+        finally:
+            if os.path.exists(temp_srt_path):
+                os.remove(temp_srt_path)
+
+
+    def test_llm_console_widget_initialization(self):
+        """Verify LlmConsoleWidget components, read-only edits, columns, and initial telemetry label."""
+        from src.gui.console_widgets import LlmConsoleWidget
+
+        widget = LlmConsoleWidget()
+        self.assertTrue(widget.payload_edit.isReadOnly())
+        self.assertTrue(widget.response_edit.isReadOnly())
+        self.assertEqual(widget.diff_table.columnCount(), 2)
+        self.assertIn("Provider: N/A", widget.telemetry_label.text())
+
+    def test_llm_console_widget_update_and_diffs(self):
+        """Verify update_llm_interaction, add_diff_rows, and clear methods of LlmConsoleWidget."""
+        from src.gui.console_widgets import LlmConsoleWidget
+
+        widget = LlmConsoleWidget()
+        payload = '[{"id": 1, "text": "Hello world"}]'
+        response = '{"segments": [{"id": 1, "text": "Hello, world!"}]}'
+        provider = "ollama"
+        model_name = "llama3.2:3b"
+        batch_info = "Batch 1/1 (1 segs) | Latency: 0.12s"
+
+        widget.update_llm_interaction(payload, response, provider, model_name, batch_info)
+        self.assertEqual(widget.payload_edit.toPlainText(), payload)
+        self.assertEqual(widget.response_edit.toPlainText(), response)
+        self.assertIn("ollama", widget.telemetry_label.text())
+        self.assertIn("llama3.2:3b", widget.telemetry_label.text())
+
+        diffs = [("Hello world", "Hello, world!")]
+        widget.add_diff_rows(diffs)
+        self.assertEqual(widget.diff_table.rowCount(), 1)
+        self.assertEqual(widget.diff_table.item(0, 0).text(), "Hello world")
+        self.assertEqual(widget.diff_table.item(0, 1).text(), "Hello, world!")
+
+        widget.clear()
+        self.assertEqual(widget.payload_edit.toPlainText(), "")
+        self.assertEqual(widget.response_edit.toPlainText(), "")
+        self.assertEqual(widget.diff_table.rowCount(), 0)
+
+    def test_llm_console_slot_receiver(self):
+        """Verify on_llm_data_emitted slot method updates telemetry text and diff table rows."""
+        from src.gui.console_widgets import LlmConsoleWidget
+
+        widget = LlmConsoleWidget()
+        widget.on_llm_data_emitted(
+            payload_json='[{"id": 1, "text": "test"}]',
+            response_json='[{"id": 1, "text": "Test."}]',
+            provider="gemini",
+            model_name="gemini-2.5-flash",
+            batch_info="Batch 1/1 (1 segs) | Latency: 0.25s",
+            diff_items=[("test", "Test.")],
+        )
+        self.assertEqual(widget.payload_edit.toPlainText(), '[{"id": 1, "text": "test"}]')
+        self.assertEqual(widget.diff_table.rowCount(), 1)
+        self.assertEqual(widget.diff_table.item(0, 0).text(), "test")
+        self.assertEqual(widget.diff_table.item(0, 1).text(), "Test.")
+
+    def test_corrector_llm_callback_invocation(self):
+        """Verify correct_grammar invokes llm_callback with telemetry data and diff pairs."""
+        from src.grammar_correction.corrector import correct_grammar
+
+        segments = [{"id": 1, "start": 0.0, "end": 2.0, "text": "hello world"}]
+        mock_cb = MagicMock()
+
+        mock_response = '{"segments": [{"id": 1, "text": "Hello world."}]}'
+        with patch("src.grammar_correction.corrector.call_llm_provider", return_value=mock_response):
+            res = correct_grammar(
+                segments,
+                model_name="llama3.2:3b",
+                provider="ollama",
+                llm_callback=mock_cb,
+            )
+
+        self.assertEqual(res[0]["text"], "Hello world.")
+        mock_cb.assert_called_once()
+        args = mock_cb.call_args[0]
+        payload_json, resp_json, provider, model_name, batch_info, diff_items = args
+        self.assertIn("hello world", payload_json)
+        self.assertEqual(resp_json, mock_response)
+        self.assertEqual(provider, "ollama")
+        self.assertEqual(model_name, "llama3.2:3b")
+        self.assertIn("Batch", batch_info)
+        self.assertEqual(diff_items, [("hello world", "Hello world.")])
+
+    def test_worker_llm_data_emitted_signal(self):
+        """Verify PipelineWorker emits llm_data_emitted signal when callback is invoked."""
+        worker = PipelineWorker(video_path="/tmp/test.mp4")
+        received_data = []
+        worker.llm_data_emitted.connect(lambda *args: received_data.append(args))
+
+        def dummy_run_pipeline(*args, **kwargs):
+            cb = kwargs.get("llm_callback")
+            if cb:
+                cb('{"id": 1}', '{"id": 1, "text": "out"}', "ollama", "llama3.2", "Batch 1/1", [("in", "out")])
+            return "/tmp/test.srt"
+
+        with patch("src.gui.worker.run_pipeline", side_effect=dummy_run_pipeline):
+            worker.run()
+
+        self.assertEqual(len(received_data), 1)
+        self.assertEqual(received_data[0][2], "ollama")
+        self.assertEqual(received_data[0][5], [("in", "out")])
+
 
 if __name__ == "__main__":
     unittest.main()
+
+

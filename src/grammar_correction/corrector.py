@@ -1,5 +1,7 @@
 import json
 import logging
+import time
+from typing import Callable, Optional
 from src.grammar_correction.llm_providers import call_llm_provider
 from src.grammar_correction.prompts import build_system_prompt
 from src.schemas import SegmentDict, SubtitleResponse, SubtitleSegment
@@ -13,6 +15,9 @@ def correct_grammar(
     target_language: str = "English",
     provider: str = "ollama",
     api_key: str | None = None,
+    llm_callback: Optional[
+        Callable[[str, str, str, str, str, list[tuple[str, str]]], None]
+    ] = None,
 ) -> list[SegmentDict]:
     """Correct the grammar of subtitle text segments or translate them using LLM provider.
 
@@ -22,6 +27,7 @@ def correct_grammar(
         target_language: Target language for translation/correction (default "English").
         provider: LLM provider name ("ollama" or "gemini", default "ollama").
         api_key: API key for cloud LLM provider (optional).
+        llm_callback: Optional callback receiving (payload_json, response_json, provider, model_name, batch_info, diff_items).
 
     Returns:
         A list of segment dictionaries with updated 'text' fields.
@@ -79,6 +85,8 @@ def correct_grammar(
                 len(batch),
             )
 
+        start_time = time.time()
+        content = None
         try:
             prompt_system = build_system_prompt(target_language)
             messages = [
@@ -116,6 +124,30 @@ def correct_grammar(
                 f"Grammar correction failed for batch starting at index {i}: {e}. "
                 "Falling back to original segment text."
             )
+
+        latency = time.time() - start_time
+        if llm_callback:
+            diff_items: list[tuple[str, str]] = []
+            for seg in batch:
+                seg_id = int(seg["id"])
+                orig_text = str(seg["text"])
+                adapted_text = corrected_map.get(seg_id, orig_text)
+                diff_items.append((orig_text, adapted_text))
+
+            batch_info = f"Batch: {batch_index}/{total_batches} ({len(batch)} segs) | Latency: {latency:.2f}s"
+            payload_json = json.dumps(payload, indent=2)
+            response_json = content or ""
+            try:
+                llm_callback(
+                    payload_json,
+                    response_json,
+                    provider,
+                    model_name,
+                    batch_info,
+                    diff_items,
+                )
+            except Exception as cb_err:
+                logger.warning("Error executing llm_callback: %s", cb_err)
 
     result: list[dict[str, float | int | str]] = []
     for seg in segments:

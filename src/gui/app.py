@@ -18,11 +18,17 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSplitter,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
+from src.gui.console_widgets import (
+    LlmConsoleWidget,
+    SrtConsoleWidget,
+    WhisperConsoleWidget,
+)
 from src.gui.player import VideoPlayerWidget
 from src.gui.worker import PipelineWorker
 
@@ -109,6 +115,26 @@ QSplitter::handle {
 QCheckBox {
     font-size: 13px;
     spacing: 8px;
+}
+QTabWidget::pane {
+    border: 1px solid #313244;
+    border-radius: 6px;
+    background-color: #11111b;
+}
+QTabBar::tab {
+    background-color: #181825;
+    color: #a6adc8;
+    padding: 6px 12px;
+    border: 1px solid #313244;
+    border-bottom: none;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-right: 2px;
+}
+QTabBar::tab:selected {
+    background-color: #313244;
+    color: #89b4fa;
+    font-weight: bold;
 }
 """
 
@@ -307,8 +333,8 @@ class SubtitleGeneratorApp(QMainWindow):
         self.start_button.clicked.connect(self._on_start_pipeline)
         left_layout.addWidget(self.start_button)
 
-        # 4. Progress Section
-        progress_group = QGroupBox("Progress & Status")
+        # 4. Progress Section & Consoles
+        progress_group = QGroupBox("Progress & Consoles")
         progress_layout = QVBoxLayout(progress_group)
 
         self.stage_label = QLabel("Status: Idle")
@@ -318,13 +344,23 @@ class SubtitleGeneratorApp(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
 
-        self.log_console = QTextEdit()
-        self.log_console.setReadOnly(True)
-        self.log_console.setPlaceholderText("Console logs will appear here...")
+        # Console Tab Widget (Whisper Log, LLM Output, SRT Preview)
+        self.console_tabs = QTabWidget()
+
+        self.whisper_console = WhisperConsoleWidget()
+        self.llm_console = LlmConsoleWidget()
+        self.llm_console_widget = self.llm_console
+        self.srt_console = SrtConsoleWidget()
+
+        self.console_tabs.addTab(self.whisper_console, "🎙️ Whisper Log")
+        self.console_tabs.addTab(self.llm_console, "🧠 LLM Telemetry & Diffs")
+        self.console_tabs.addTab(self.srt_console, "📄 SRT Preview")
+
+        self.log_console = self.whisper_console.log_area
 
         progress_layout.addWidget(self.stage_label)
         progress_layout.addWidget(self.progress_bar)
-        progress_layout.addWidget(self.log_console)
+        progress_layout.addWidget(self.console_tabs)
 
         left_layout.addWidget(progress_group, stretch=1)
 
@@ -504,12 +540,22 @@ class SubtitleGeneratorApp(QMainWindow):
         self.progress_bar.setValue(0)
         self.stage_label.setText("Status: Initializing...")
         self.log_console.clear()
+        self.whisper_console.clear_log()
+        self.llm_console.clear()
+        self.srt_console.set_srt_content("")
 
         # Gather settings
         model_size = self.model_combo.currentText()
         target_language = self.language_combo.currentText()
         ollama_model = self.ollama_combo.currentText().strip() or "llama3.2:3b"
         skip_grammar = not self.enable_llm_check.isChecked()
+
+        self.whisper_console.update_telemetry(
+            language=target_language,
+            probability=1.0,
+            duration=0.0,
+            model_size=model_size,
+        )
 
         provider_text = self.provider_combo.currentText()
         if "Puter" in provider_text:
@@ -521,6 +567,7 @@ class SubtitleGeneratorApp(QMainWindow):
         api_key = self.api_key_edit.text().strip() or None
 
         # Spawn pipeline worker thread
+        self.llm_console.clear()
         self.worker = PipelineWorker(
             video_path=video_path,
             model_size=model_size,
@@ -532,6 +579,7 @@ class SubtitleGeneratorApp(QMainWindow):
         )
         self.worker.progress_updated.connect(self._on_progress_updated)
         self.worker.log_emitted.connect(self._on_log_emitted)
+        self.worker.llm_data_emitted.connect(self.llm_console.on_llm_data_emitted)
         self.worker.pipeline_finished.connect(
             lambda srt_path: self._on_pipeline_finished(video_path, srt_path)
         )
@@ -545,6 +593,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
     def _on_log_emitted(self, msg: str):
         self.log_console.append(msg)
+        self.whisper_console.append_log(msg)
 
     def _on_pipeline_finished(self, video_path: str, srt_path: str):
         self._set_controls_enabled(True)
@@ -553,6 +602,14 @@ class SubtitleGeneratorApp(QMainWindow):
 
         self.generated_srt_path = srt_path
         self.export_button.setEnabled(True)
+
+        if srt_path and os.path.exists(srt_path):
+            try:
+                with open(srt_path, "r", encoding="utf-8") as f:
+                    srt_content = f.read()
+                self.srt_console.set_srt_content(srt_content)
+            except Exception as e:
+                logger.error("Failed to load SRT into SrtConsoleWidget: %s", e)
 
         # Enable Video Player widget, load video & generated .srt, and start playback automatically!
         self.video_player.setEnabled(True)
@@ -609,6 +666,13 @@ class SubtitleGeneratorApp(QMainWindow):
         if srt_path:
             self.generated_srt_path = srt_path
             self.export_button.setEnabled(True)
+            if os.path.exists(srt_path):
+                try:
+                    with open(srt_path, "r", encoding="utf-8") as f:
+                        srt_content = f.read()
+                    self.srt_console.set_srt_content(srt_content)
+                except Exception as e:
+                    logger.error("Failed to load custom SRT: %s", e)
             if self.selected_video_path and os.path.exists(self.selected_video_path):
                 self.video_player.setEnabled(True)
                 self.video_player.load_video(self.selected_video_path, srt_path)
