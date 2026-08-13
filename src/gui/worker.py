@@ -37,8 +37,8 @@ class PipelineProgressHandler(logging.Handler):
                 percent, stage = 25, "Audio Extraction"
             elif "[Step 2/4]" in msg or "Transcribing audio" in msg:
                 percent, stage = 50, "Transcription"
-            elif "[Step 3/4]" in msg or "Correcting grammar" in msg or "Skipping LLM grammar" in msg:
-                percent, stage = 75, "Grammar Correction"
+            elif "[Step 3/4]" in msg or "Starting LLM" in msg or "Processing LLM" in msg or "Correcting grammar" in msg:
+                percent, stage = 75, "LLM Processing"
             elif "[Step 4/4]" in msg or "Generating SRT" in msg:
                 percent, stage = 90, "SRT Generation"
 

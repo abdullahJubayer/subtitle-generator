@@ -31,11 +31,47 @@ def correct_grammar(
     }
 
     batch_size = 40
+    total_batches = (len(segments) + batch_size - 1) // batch_size
+    is_translation = target_language.strip().lower() not in ("english", "en")
+
+    if is_translation:
+        logger.info(
+            "[Step 3/4] 🌐 Starting LLM natural translation into '%s' (%d segments in %d batch(es)) using model '%s'...",
+            target_language,
+            len(segments),
+            total_batches,
+            model_name,
+        )
+    else:
+        logger.info(
+            "[Step 3/4] 🧠 Starting LLM English grammar correction (%d segments in %d batch(es)) using model '%s'...",
+            len(segments),
+            total_batches,
+            model_name,
+        )
+
     for i in range(0, len(segments), batch_size):
         batch = segments[i : i + batch_size]
+        batch_index = (i // batch_size) + 1
         payload = [
             {"id": int(seg["id"]), "text": str(seg["text"])} for seg in batch
         ]
+
+        if is_translation:
+            logger.info(
+                "  ➔ Processing LLM Translation Batch %d/%d (%d segments) -> Target: '%s'",
+                batch_index,
+                total_batches,
+                len(batch),
+                target_language,
+            )
+        else:
+            logger.info(
+                "  ➔ Processing LLM Grammar Batch %d/%d (%d segments)",
+                batch_index,
+                total_batches,
+                len(batch),
+            )
 
         try:
             prompt_system = build_system_prompt(target_language)
@@ -79,9 +115,15 @@ def correct_grammar(
                 parsed_response = SubtitleResponse.model_validate_json(content)
                 for item in parsed_response.segments:
                     corrected_map[item.id] = item.text
+                logger.info(
+                    "  ✓ LLM Batch %d/%d successfully processed (%d segments adapted)",
+                    batch_index,
+                    total_batches,
+                    len(parsed_response.segments),
+                )
             else:
                 logger.warning(
-                    f"Ollama returned empty content for batch starting at index {i}."
+                    f"Ollama returned empty content for batch {batch_index}/{total_batches}."
                 )
 
         except Exception as e:
