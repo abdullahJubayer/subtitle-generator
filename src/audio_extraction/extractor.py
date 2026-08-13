@@ -25,7 +25,20 @@ def extract_audio(video_path: str, audio_path: str) -> str:
         raise FileNotFoundError(f"Input video file not found: {video_path}")
 
     logger.info("Extracting audio from '%s' to '%s'", video_path, audio_path)
-    cmd = ["ffmpeg", "-i", video_path, "-q:a", "0", "-map", "a", audio_path, "-y"]
+    cmd = [
+        "ffmpeg",
+        "-i",
+        video_path,
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "16000",
+        "-map",
+        "0:a:0?",
+        audio_path,
+        "-y",
+    ]
     try:
         subprocess.run(
             cmd,
