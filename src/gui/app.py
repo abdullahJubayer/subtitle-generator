@@ -34,7 +34,8 @@ from src.gui.console_widgets import (
     WhisperConsoleWidget,
 )
 from src.gui.player import VideoPlayerWidget
-from src.gui.worker import PipelineWorker
+from src.gui.subtitle_table import InteractiveSubtitleTableWidget
+from src.gui.worker import PipelineWorker, SingleSegmentWorker
 
 logger = logging.getLogger(__name__)
 
@@ -352,17 +353,23 @@ class SubtitleGeneratorApp(QMainWindow):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
 
-        # Console Tab Widget (Whisper Log, LLM Output, SRT Preview)
+        # Console Tab Widget (Interactive Studio, Whisper Log, LLM Output, SRT Preview)
         self.console_tabs = QTabWidget()
 
+        self.studio_table = InteractiveSubtitleTableWidget()
         self.whisper_console = WhisperConsoleWidget()
         self.llm_console = LlmConsoleWidget()
         self.llm_console_widget = self.llm_console
         self.srt_console = SrtConsoleWidget()
 
+        self.console_tabs.addTab(self.studio_table, "Interactive Studio")
         self.console_tabs.addTab(self.whisper_console, "Whisper Log")
         self.console_tabs.addTab(self.llm_console, "LLM Telemetry & Diffs")
         self.console_tabs.addTab(self.srt_console, "SRT Preview")
+
+        self.studio_table.convert_requested.connect(self._on_single_convert_requested)
+        self.studio_table.convert_all_requested.connect(self._on_convert_all_requested)
+        self.studio_table.segments_changed.connect(self._on_studio_segments_changed)
 
         self.log_console = self.whisper_console.log_area
 
@@ -597,12 +604,71 @@ class SubtitleGeneratorApp(QMainWindow):
         self.worker.progress_updated.connect(self._on_progress_updated)
         self.worker.log_emitted.connect(self._on_log_emitted)
         self.worker.llm_data_emitted.connect(self.llm_console.on_llm_data_emitted)
+        self.worker.segments_transcribed.connect(self._on_segments_transcribed)
         self.worker.pipeline_finished.connect(
             lambda srt_path: self._on_pipeline_finished(video_path, srt_path)
         )
         self.worker.pipeline_error.connect(self._on_pipeline_error)
 
         self.worker.start()
+
+    def _on_segments_transcribed(self, segments: list) -> None:
+        """Slot receiver when Whisper transcription completes to populate Interactive Studio table."""
+        self.studio_table.load_segments(segments)
+
+    def _on_single_convert_requested(self, seg_id: int, segment: dict) -> None:
+        """Handle single segment line conversion request via SingleSegmentWorker."""
+        target_language = self.language_combo.currentText()
+        ollama_model = self.ollama_combo.currentText().strip() or "llama3.2:3b"
+        provider_text = self.provider_combo.currentText()
+        if "Puter" in provider_text:
+            llm_provider = "puter"
+            api_key = self.api_key_edit.text().strip() or os.environ.get("PUTER_API_KEY")
+        elif "Gemini" in provider_text or "Cloud" in provider_text:
+            llm_provider = "gemini"
+            api_key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
+        else:
+            llm_provider = "ollama"
+            api_key = None
+
+        worker = SingleSegmentWorker(
+            segment=segment,
+            model_name=ollama_model,
+            target_language=target_language,
+            provider=llm_provider,
+            api_key=api_key,
+            parent=self,
+        )
+        worker.segment_finished.connect(
+            lambda sid, text, status: self.studio_table.update_segment_translation(sid, text, status)
+        )
+        worker.segment_error.connect(
+            lambda sid, err: self.studio_table.update_segment_translation(sid, segment.get("text", ""), "Error")
+        )
+        worker.start()
+
+    def _on_convert_all_requested(self) -> None:
+        """Handle Convert All Lines toolbar button click."""
+        active_segs = self.studio_table.get_active_segments()
+        for seg in active_segs:
+            seg_id = int(seg["id"])
+            self._on_single_convert_requested(seg_id, seg)
+
+    def _on_studio_segments_changed(self) -> None:
+        """Auto-update SRT preview and video player subtitles whenever interactive table changes."""
+        active_segs = self.studio_table.get_active_segments()
+        if not active_segs:
+            return
+        from src.srt_generation.generator import generate_srt_content
+        srt_content = generate_srt_content(active_segs)
+        self.srt_console.set_srt_content(srt_content)
+        if self.selected_video_path and os.path.exists(self.selected_video_path):
+            import tempfile
+            with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".srt", encoding="utf-8") as f:
+                f.write(srt_content)
+                temp_srt = f.name
+            self.generated_srt_path = temp_srt
+            self.video_player.load_video(self.selected_video_path, temp_srt)
 
     def _on_progress_updated(self, percent: int, stage_text: str):
         self.progress_bar.setValue(percent)

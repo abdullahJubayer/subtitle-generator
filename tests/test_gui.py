@@ -177,6 +177,7 @@ class TestGUIComponents(unittest.TestCase):
                 llm_provider="ollama",
                 api_key=None,
                 llm_callback=ANY,
+                transcription_callback=ANY,
             )
 
     def test_provider_selection_toggles_models_and_api_key_visibility(self):
@@ -244,6 +245,7 @@ class TestGUIComponents(unittest.TestCase):
                 llm_provider="gemini",
                 api_key="cloud-api-key-xyz",
                 llm_callback=ANY,
+                transcription_callback=ANY,
             )
 
     def test_puter_provider_selection(self):
@@ -477,14 +479,16 @@ class TestGUIComponents(unittest.TestCase):
     def test_app_console_tabs_integration(self):
         """Verify QTabWidget embedding WhisperConsoleWidget, LlmConsoleWidget, and SrtConsoleWidget in SubtitleGeneratorApp."""
         self.assertTrue(hasattr(self.app, "console_tabs"))
+        self.assertTrue(hasattr(self.app, "studio_table"))
         self.assertTrue(hasattr(self.app, "whisper_console"))
         self.assertTrue(hasattr(self.app, "llm_console"))
         self.assertTrue(hasattr(self.app, "srt_console"))
 
-        self.assertEqual(self.app.console_tabs.count(), 3)
-        self.assertEqual(self.app.console_tabs.tabText(0), "Whisper Log")
-        self.assertEqual(self.app.console_tabs.tabText(1), "LLM Telemetry & Diffs")
-        self.assertEqual(self.app.console_tabs.tabText(2), "SRT Preview")
+        self.assertEqual(self.app.console_tabs.count(), 4)
+        self.assertEqual(self.app.console_tabs.tabText(0), "Interactive Studio")
+        self.assertEqual(self.app.console_tabs.tabText(1), "Whisper Log")
+        self.assertEqual(self.app.console_tabs.tabText(2), "LLM Telemetry & Diffs")
+        self.assertEqual(self.app.console_tabs.tabText(3), "SRT Preview")
 
         # Test log routing
         self.app._on_log_emitted("[Step 3/4] LLM grammar correction starting...")

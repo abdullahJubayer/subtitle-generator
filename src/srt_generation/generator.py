@@ -24,6 +24,27 @@ def format_timestamp(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{ms:03d}"
 
 
+def generate_srt_content(segments: list[SegmentDict]) -> str:
+    """Generate formatted SRT string content from timestamped subtitle segments.
+
+    Args:
+        segments: List of segment dicts containing 'id', 'start', 'end', and 'text'.
+
+    Returns:
+        Formatted SRT file content string.
+    """
+    content_lines: list[str] = []
+    for seg in segments:
+        seg_id = seg["id"]
+        start_fmt = format_timestamp(float(seg["start"]))
+        end_fmt = format_timestamp(float(seg["end"]))
+        text = str(seg["text"])
+
+        content_lines.append(f"{seg_id}\n{start_fmt} --> {end_fmt}\n{text}\n\n")
+
+    return "".join(content_lines)
+
+
 def generate_srt(
     segments: list[SegmentDict], output_path: str
 ) -> str:
@@ -39,16 +60,7 @@ def generate_srt(
     out_file = Path(output_path)
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
-    content_lines: list[str] = []
-    for seg in segments:
-        seg_id = seg["id"]
-        start_fmt = format_timestamp(float(seg["start"]))
-        end_fmt = format_timestamp(float(seg["end"]))
-        text = str(seg["text"])
-
-        content_lines.append(f"{seg_id}\n{start_fmt} --> {end_fmt}\n{text}\n\n")
-
-    full_text = "".join(content_lines)
+    full_text = generate_srt_content(segments)
 
     with open(out_file, "w", encoding="utf-8") as f:
         f.write(full_text)

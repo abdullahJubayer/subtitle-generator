@@ -26,6 +26,7 @@ def run_pipeline(
     llm_callback: Optional[
         Callable[[str, str, str, str, str, list[tuple[str, str]]], None]
     ] = None,
+    transcription_callback: Optional[Callable[[list[SegmentDict]], None]] = None,
 ) -> str:
     """Run the complete Video-to-Subtitle pipeline.
 
@@ -38,6 +39,8 @@ def run_pipeline(
         target_language: Target language for translation/correction (default "English").
         llm_provider: LLM provider name ("ollama" or "gemini", default "ollama").
         api_key: Optional API key for cloud provider (e.g. Gemini).
+        llm_callback: Optional callback for telemetry.
+        transcription_callback: Optional callback called with raw transcribed segments immediately after transcription.
 
     Returns:
         Absolute path to the generated .srt file.
@@ -71,6 +74,12 @@ def run_pipeline(
             extracted_audio, model_size=model_size
         )
         logger.info("Transcription completed: %d segments", len(segments))
+
+        if transcription_callback:
+            try:
+                transcription_callback(segments)
+            except Exception as cb_err:
+                logger.warning("Error executing transcription_callback: %s", cb_err)
 
         # Step 3: Grammar Correction (Module C)
         if not skip_grammar:

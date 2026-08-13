@@ -174,3 +174,35 @@ def correct_grammar(
         result.append(updated_seg)
 
     return result
+
+
+def correct_single_segment(
+    segment: SegmentDict,
+    model_name: str = "llama3.2:3b",
+    target_language: str = "English",
+    provider: str = "ollama",
+    api_key: str | None = None,
+) -> str:
+    """Correct or translate a single subtitle segment line using LLM provider.
+
+    Args:
+        segment: Single segment dictionary with keys 'id', 'start', 'end', 'text'.
+        model_name: LLM model name to use for translation/correction.
+        target_language: Target language for translation/correction.
+        provider: LLM provider name ("ollama", "gemini", or "puter").
+        api_key: Optional API key.
+
+    Returns:
+        The updated translated or corrected text string.
+    """
+    res = correct_grammar(
+        [segment],
+        model_name=model_name,
+        target_language=target_language,
+        provider=provider,
+        api_key=api_key,
+    )
+    if res and len(res) > 0:
+        return str(res[0].get("text", segment.get("text", "")))
+    return str(segment.get("text", ""))
+
