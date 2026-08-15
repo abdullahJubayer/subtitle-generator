@@ -11,6 +11,8 @@ from PyQt6.QtCore import QThread, Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
@@ -39,6 +41,60 @@ from src.gui.subtitle_table import InteractiveSubtitleTableWidget
 from src.gui.worker import PipelineWorker, SingleSegmentWorker
 
 logger = logging.getLogger(__name__)
+
+
+class PuterLoginDialog(QDialog):
+    """Modal dialog prompting user to authenticate with Puter.js AI."""
+
+    def __init__(self, parent=None, current_token: str = ""):
+        super().__init__(parent)
+        self.setWindowTitle("🔑 Puter.js AI Login & Authentication")
+        self.setFixedWidth(460)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(12)
+
+        header = QLabel("<h3>Connect to Puter.js AI Cloud</h3>")
+        header.setStyleSheet("color: #cba6f7;")
+        layout.addWidget(header)
+
+        desc = QLabel(
+            "Puter.js AI models require a Puter account session token.\n\n"
+            "1. Click 'Open Puter Dashboard' below to log into your Puter account.\n"
+            "2. Under Account settings, copy your Auth Token.\n"
+            "3. Paste your Auth Token into the box below and click Save & Use Puter."
+        )
+        desc.setWordWrap(True)
+        desc.setStyleSheet("color: #a6adc8; font-size: 12px;")
+        layout.addWidget(desc)
+
+        open_btn = QPushButton("🌐 Open Puter Dashboard (Login)")
+        open_btn.setStyleSheet("background-color: #89b4fa; color: #11111b; font-weight: bold; padding: 8px; border-radius: 6px;")
+        open_btn.clicked.connect(self._open_dashboard)
+        layout.addWidget(open_btn)
+
+        token_label = QLabel("Puter Auth Token / Session Key:")
+        token_label.setStyleSheet("color: #cdd6f4; font-weight: bold;")
+        layout.addWidget(token_label)
+
+        self.token_edit = QLineEdit(current_token)
+        self.token_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.token_edit.setPlaceholderText("Paste your Puter Auth Token here...")
+        self.token_edit.setStyleSheet("padding: 8px; border: 1px solid #45475a; border-radius: 6px; background-color: #1e1e2e; color: #cdd6f4;")
+        layout.addWidget(self.token_edit)
+
+        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btn_box.button(QDialogButtonBox.StandardButton.Ok).setText("Save & Use Puter")
+        btn_box.accepted.connect(self.accept)
+        btn_box.rejected.connect(self.reject)
+        layout.addWidget(btn_box)
+
+    def _open_dashboard(self) -> None:
+        import webbrowser
+        webbrowser.open("https://puter.com/dashboard#account")
+
+    def get_token(self) -> str:
+        return self.token_edit.text().strip()
 
 DARK_QSS = """
 QMainWindow {
@@ -853,7 +909,19 @@ class SubtitleGeneratorApp(QMainWindow):
             ollama_model = model_name
 
         if llm_provider == "puter":
-            api_key = self.api_key_edit.text().strip() or os.environ.get("PUTER_API_KEY")
+            api_key = self.api_key_edit.text().strip() or os.environ.get("PUTER_API_KEY") or os.environ.get("PUTTER_API_KEY")
+            if not api_key:
+                dlg = PuterLoginDialog(self)
+                if dlg.exec() == QDialog.DialogCode.Accepted:
+                    api_key = dlg.get_token()
+                    if api_key:
+                        os.environ["PUTER_API_KEY"] = api_key
+                        self.api_key_edit.setText(api_key)
+                if not api_key:
+                    self.studio_table.update_segment_translation(seg_id, segment.get("text", ""), "Error: Puter Token Missing")
+                    if is_batch and on_complete_callback:
+                        on_complete_callback()
+                    return
         elif llm_provider == "gemini":
             api_key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
         else:
