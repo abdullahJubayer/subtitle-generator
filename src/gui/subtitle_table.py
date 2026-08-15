@@ -24,10 +24,18 @@ logger = logging.getLogger(__name__)
 DEFAULT_MODEL_OPTIONS: list[tuple[str, str, str]] = [
     ("ollama", "llama3.2:3b", "Ollama: llama3.2:3b"),
     ("ollama", "translategemma:4b", "Ollama: translategemma:4b"),
+    ("gemini", "gemini-2.5-flash", "Gemini: 2.5-flash"),
+    ("gemini", "gemini-2.0-flash", "Gemini: 2.0-flash"),
+    ("gemini", "gemini-2.0-flash-lite", "Gemini: 2.0-flash-lite"),
     ("gemini", "gemini-1.5-flash", "Gemini: 1.5-flash"),
     ("gemini", "gemini-1.5-pro", "Gemini: 1.5-pro"),
+    ("gemini", "gemini-1.5-flash-8b", "Gemini: 1.5-flash-8b"),
+    ("gemini", "gemini-flash-latest", "Gemini: flash-latest"),
     ("puter", "gpt-4o-mini", "Puter: gpt-4o-mini"),
+    ("puter", "gpt-4o", "Puter: gpt-4o"),
     ("puter", "claude-3-5-sonnet", "Puter: claude-3-5-sonnet"),
+    ("puter", "claude-3-haiku", "Puter: claude-3-haiku"),
+    ("puter", "deepseek-chat", "Puter: deepseek-chat"),
 ]
 
 

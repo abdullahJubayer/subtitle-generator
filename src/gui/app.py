@@ -590,10 +590,18 @@ class SubtitleGeneratorApp(QMainWindow):
         for m in models:
             model_options.append(("ollama", m, f"Ollama: {m}"))
         model_options.extend([
+            ("gemini", "gemini-2.5-flash", "Gemini: 2.5-flash"),
+            ("gemini", "gemini-2.0-flash", "Gemini: 2.0-flash"),
+            ("gemini", "gemini-2.0-flash-lite", "Gemini: 2.0-flash-lite"),
             ("gemini", "gemini-1.5-flash", "Gemini: 1.5-flash"),
             ("gemini", "gemini-1.5-pro", "Gemini: 1.5-pro"),
+            ("gemini", "gemini-1.5-flash-8b", "Gemini: 1.5-flash-8b"),
+            ("gemini", "gemini-flash-latest", "Gemini: flash-latest"),
             ("puter", "gpt-4o-mini", "Puter: gpt-4o-mini"),
+            ("puter", "gpt-4o", "Puter: gpt-4o"),
             ("puter", "claude-3-5-sonnet", "Puter: claude-3-5-sonnet"),
+            ("puter", "claude-3-haiku", "Puter: claude-3-haiku"),
+            ("puter", "deepseek-chat", "Puter: deepseek-chat"),
         ])
         self.studio_table.set_available_models(model_options)
 

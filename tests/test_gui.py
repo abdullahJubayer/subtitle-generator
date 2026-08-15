@@ -225,7 +225,7 @@ class TestGUIComponents(unittest.TestCase):
                 video_path="/tmp/sample.mp4",
                 model_size="small",
                 skip_grammar=False,
-                ollama_model="gemini-1.5-flash",
+                ollama_model="gemini-2.5-flash",
                 target_language="English",
                 llm_provider="gemini",
                 api_key="test-secret-key-123",

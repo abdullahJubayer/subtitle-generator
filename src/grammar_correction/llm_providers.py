@@ -24,7 +24,15 @@ def get_available_gemini_models(api_key: str | None = None) -> list[str]:
         List of available Gemini model names.
     """
     key = api_key or os.environ.get("GEMINI_API_KEY")
-    default_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"]
+    default_models = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-8b",
+        "gemini-flash-latest",
+    ]
     if not key:
         return default_models
 
@@ -37,7 +45,7 @@ def get_available_gemini_models(api_key: str | None = None) -> list[str]:
             clean_name = name.replace("models/", "")
             if "gemini" in clean_name.lower() and not any(
                 skip in clean_name.lower()
-                for skip in ["deprecated", "audio", "embedding", "robotics", "computer-use", "image", "tts", "2.5-flash"]
+                for skip in ["deprecated", "audio", "embedding", "robotics", "computer-use", "image", "tts"]
             ):
                 candidates.append(clean_name)
     except Exception as e:
