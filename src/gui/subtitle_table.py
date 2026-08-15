@@ -33,9 +33,13 @@ DEFAULT_MODEL_OPTIONS: list[tuple[str, str, str]] = [
     ("gemini", "gemini-flash-latest", "Gemini: flash-latest"),
     ("puter", "gpt-4o-mini", "Puter: gpt-4o-mini"),
     ("puter", "gpt-4o", "Puter: gpt-4o"),
+    ("puter", "gpt-4.5-preview", "Puter: gpt-4.5-preview"),
     ("puter", "claude-3-5-sonnet", "Puter: claude-3-5-sonnet"),
-    ("puter", "claude-3-haiku", "Puter: claude-3-haiku"),
+    ("puter", "claude-3-5-haiku", "Puter: claude-3-5-haiku"),
+    ("puter", "claude-3-opus", "Puter: claude-3-opus"),
     ("puter", "deepseek-chat", "Puter: deepseek-chat"),
+    ("puter", "deepseek-reasoner", "Puter: deepseek-reasoner"),
+    ("puter", "mistral-large-latest", "Puter: mistral-large-latest"),
 ]
 
 

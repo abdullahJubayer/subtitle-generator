@@ -54,7 +54,6 @@ def get_available_gemini_models(api_key: str | None = None) -> list[str]:
     if not candidates:
         candidates = default_models
 
-    # Deduplicate while preserving order
     seen = set()
     deduped = []
     for m in candidates:
@@ -63,6 +62,33 @@ def get_available_gemini_models(api_key: str | None = None) -> list[str]:
             deduped.append(m)
 
     return deduped
+
+PUTER_MODELS: list[str] = [
+    "gpt-4o-mini",
+    "gpt-4o",
+    "gpt-4.5-preview",
+    "claude-3-5-sonnet",
+    "claude-3-5-haiku",
+    "claude-3-opus",
+    "deepseek-chat",
+    "deepseek-reasoner",
+    "mistral-large-latest",
+    "gemini-1.5-pro",
+    "gemini-2.0-flash",
+    "meta-llama/llama-3.3-70b-instruct",
+]
+
+
+def get_available_puter_models(api_key: str | None = None) -> list[str]:
+    """List supported Puter.js AI chat models.
+
+    Args:
+        api_key: Optional API key. If None, reads PUTER_API_KEY from environment.
+
+    Returns:
+        List of available Puter model names.
+    """
+    return list(PUTER_MODELS)
 
 
 def call_llm_provider(

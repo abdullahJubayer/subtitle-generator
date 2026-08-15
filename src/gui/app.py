@@ -533,10 +533,10 @@ class SubtitleGeneratorApp(QMainWindow):
             self.ollama_combo.setCurrentText("gpt-4o-mini")
         elif is_gemini:
             key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
-            gemini_models = get_available_gemini_models(key)
+            gemini_models = get_available_gemini_models(key) or []
             self.ollama_combo.addItems(gemini_models)
-            if "gemini-1.5-flash" in gemini_models:
-                self.ollama_combo.setCurrentText("gemini-1.5-flash")
+            if "gemini-2.5-flash" in gemini_models:
+                self.ollama_combo.setCurrentText("gemini-2.5-flash")
             elif gemini_models:
                 self.ollama_combo.setCurrentText(gemini_models[0])
         else:
@@ -553,7 +553,7 @@ class SubtitleGeneratorApp(QMainWindow):
         provider_text = self.provider_combo.currentText()
         if "Gemini" in provider_text:
             key = text.strip() or os.environ.get("GEMINI_API_KEY")
-            gemini_models = get_available_gemini_models(key)
+            gemini_models = get_available_gemini_models(key) or []
             current = self.ollama_combo.currentText()
             self.ollama_combo.clear()
             self.ollama_combo.addItems(gemini_models)
@@ -585,10 +585,11 @@ class SubtitleGeneratorApp(QMainWindow):
             else:
                 self.ollama_combo.setEditText(current)
 
-        # Dynamically fetch live Gemini models using GEMINI_API_KEY from .env or UI
-        from src.grammar_correction.llm_providers import get_available_gemini_models
+        # Dynamically fetch live Gemini & Puter models using environment / API keys
+        from src.grammar_correction.llm_providers import get_available_gemini_models, get_available_puter_models
         api_key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
         gemini_models = get_available_gemini_models(api_key=api_key)
+        puter_models = get_available_puter_models(api_key=os.environ.get("PUTER_API_KEY"))
 
         # Build dynamic per-row model list for studio table
         model_options = []
@@ -599,13 +600,9 @@ class SubtitleGeneratorApp(QMainWindow):
             display_name = g_mod.replace("gemini-", "")
             model_options.append(("gemini", g_mod, f"Gemini: {display_name}"))
 
-        model_options.extend([
-            ("puter", "gpt-4o-mini", "Puter: gpt-4o-mini"),
-            ("puter", "gpt-4o", "Puter: gpt-4o"),
-            ("puter", "claude-3-5-sonnet", "Puter: claude-3-5-sonnet"),
-            ("puter", "claude-3-haiku", "Puter: claude-3-haiku"),
-            ("puter", "deepseek-chat", "Puter: deepseek-chat"),
-        ])
+        for p_mod in puter_models:
+            model_options.append(("puter", p_mod, f"Puter: {p_mod}"))
+
         self.studio_table.set_available_models(model_options)
 
     def _on_browse_file(self) -> None:
