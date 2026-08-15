@@ -585,18 +585,21 @@ class SubtitleGeneratorApp(QMainWindow):
             else:
                 self.ollama_combo.setEditText(current)
 
+        # Dynamically fetch live Gemini models using GEMINI_API_KEY from .env or UI
+        from src.grammar_correction.llm_providers import get_available_gemini_models
+        api_key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
+        gemini_models = get_available_gemini_models(api_key=api_key)
+
         # Build dynamic per-row model list for studio table
         model_options = []
         for m in models:
             model_options.append(("ollama", m, f"Ollama: {m}"))
+
+        for g_mod in gemini_models:
+            display_name = g_mod.replace("gemini-", "")
+            model_options.append(("gemini", g_mod, f"Gemini: {display_name}"))
+
         model_options.extend([
-            ("gemini", "gemini-2.5-flash", "Gemini: 2.5-flash"),
-            ("gemini", "gemini-2.0-flash", "Gemini: 2.0-flash"),
-            ("gemini", "gemini-2.0-flash-lite", "Gemini: 2.0-flash-lite"),
-            ("gemini", "gemini-1.5-flash", "Gemini: 1.5-flash"),
-            ("gemini", "gemini-1.5-pro", "Gemini: 1.5-pro"),
-            ("gemini", "gemini-1.5-flash-8b", "Gemini: 1.5-flash-8b"),
-            ("gemini", "gemini-flash-latest", "Gemini: flash-latest"),
             ("puter", "gpt-4o-mini", "Puter: gpt-4o-mini"),
             ("puter", "gpt-4o", "Puter: gpt-4o"),
             ("puter", "claude-3-5-sonnet", "Puter: claude-3-5-sonnet"),
