@@ -926,20 +926,13 @@ class SubtitleGeneratorApp(QMainWindow):
         dispatch_next()
 
     def _on_studio_segments_changed(self) -> None:
-        """Auto-update SRT preview and video player subtitles whenever interactive table changes."""
+        """Auto-update SRT preview console whenever interactive table changes."""
         active_segs = self.studio_table.get_active_segments()
         if not active_segs:
             return
         from src.srt_generation.generator import generate_srt_content
         srt_content = generate_srt_content(active_segs)
         self.srt_console.set_srt_content(srt_content)
-        if self.selected_video_path and os.path.exists(self.selected_video_path):
-            import tempfile
-            with tempfile.NamedTemporaryFile("w+", delete=False, suffix=".srt", encoding="utf-8") as f:
-                f.write(srt_content)
-                temp_srt = f.name
-            self.generated_srt_path = temp_srt
-            self.video_player.load_video(self.selected_video_path, temp_srt)
 
     def _on_progress_updated(self, percent: int, stage_text: str):
         self.progress_bar.setValue(percent)
