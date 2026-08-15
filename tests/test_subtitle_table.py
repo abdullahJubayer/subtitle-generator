@@ -81,3 +81,19 @@ class TestInteractiveSubtitleTableWidget(unittest.TestCase):
         self.widget.set_convert_all_running(False)
         self.assertTrue(self.widget.convert_all_btn.isEnabled())
         self.assertEqual(self.widget.convert_all_btn.text(), "Convert All Lines")
+
+    def test_per_row_model_selection(self):
+        """Verify each segment row has a model selection QComboBox and passes selected provider/model on convert."""
+        self.widget.load_segments(self.segments)
+        actions_widget = self.widget.table.cellWidget(0, 5)
+        self.assertIsInstance(actions_widget, SegmentActionWidget)
+        self.assertTrue(hasattr(actions_widget, "model_combo"))
+
+        # Select Gemini in row 0
+        idx = actions_widget.model_combo.findText("Gemini: 1.5-flash")
+        self.assertTrue(idx >= 0)
+        actions_widget.model_combo.setCurrentIndex(idx)
+
+        provider, model_name = actions_widget.get_selected_provider_and_model()
+        self.assertEqual(provider, "gemini")
+        self.assertEqual(model_name, "gemini-1.5-flash")

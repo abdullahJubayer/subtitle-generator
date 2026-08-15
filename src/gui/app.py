@@ -574,9 +574,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
     def _on_ollama_models_fetched(self, models: list[str]) -> None:
         """Callback handling async background discovery of local Ollama models."""
-        if not models:
-            return
-        self._ollama_models = models
+        self.ollama_models = models
         provider_text = self.provider_combo.currentText()
         if "Gemini" not in provider_text and "Puter" not in provider_text and "Cloud" not in provider_text:
             current = self.ollama_combo.currentText()
@@ -588,6 +586,18 @@ class SubtitleGeneratorApp(QMainWindow):
                 self.ollama_combo.setCurrentText("llama3.2:3b")
             else:
                 self.ollama_combo.setEditText(current)
+
+        # Build dynamic per-row model list for studio table
+        model_options = []
+        for m in models:
+            model_options.append(("ollama", m, f"Ollama: {m}"))
+        model_options.extend([
+            ("gemini", "gemini-1.5-flash", "Gemini: 1.5-flash"),
+            ("gemini", "gemini-1.5-pro", "Gemini: 1.5-pro"),
+            ("puter", "gpt-4o-mini", "Puter: gpt-4o-mini"),
+            ("puter", "claude-3-5-sonnet", "Puter: claude-3-5-sonnet"),
+        ])
+        self.studio_table.set_available_models(model_options)
 
     def _on_browse_file(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
@@ -665,7 +675,7 @@ class SubtitleGeneratorApp(QMainWindow):
         self.ollama_combo.setEnabled(enabled)
         self.api_key_edit.setEnabled(enabled)
         if not enabled:
-            self.start_button.setText("⏳ Pipeline Running...")
+            self.start_button.setText("⏳ Processing Subtitles...")
             self.start_button.setStyleSheet(
                 "background-color: #45475a; color: #a6adc8; font-weight: bold; border-radius: 6px;"
             )
@@ -765,10 +775,21 @@ class SubtitleGeneratorApp(QMainWindow):
                     "font-weight: bold; padding: 6px 14px; border-radius: 6px; background-color: #313244; color: #a6adc8;"
                 )
 
-    def _on_segments_transcribed(self, segments: list) -> None:
-        """Slot receiver when Whisper transcription completes: populates Studio table and switches to Full Screen Studio view."""
+    def _on_segments_transcribed(self, segments: list[dict]) -> None:
+        """Handle raw Whisper transcription completion signal and populate Stage 1 Studio table."""
         self.studio_table.load_segments(segments)
-        self.stack.setCurrentIndex(1)  # Automatically switch to Stage 2: Full Screen Line Studio!
+        self.stack.setCurrentIndex(1)  # Automatically switch to Stage 1: Full-Screen Interactive Studio!
+
+    def _on_build_final_srt(self) -> None:
+        """Handle 'Build Final Subtitle & Play Video' button click in Stage 1 Studio."""
+        active_segs = self.studio_table.get_active_segments()
+        if not active_segs:
+            QMessageBox.warning(self, "No Segments", "No subtitle segments available to build SRT.")
+            return
+
+        from src.srt_generation.generator import generate_srt_content
+        srt_content = generate_srt_content(active_segs)
+        self.srt_console.set_srt_content(srt_content)
 
     def _on_build_and_load_srt(self) -> None:
         """Build final .srt file from active Studio segments, load into Video Player, and switch to Player view."""
@@ -802,22 +823,33 @@ class SubtitleGeneratorApp(QMainWindow):
         self,
         seg_id: int,
         segment: dict,
+        provider: Optional[str] = None,
+        model_name: Optional[str] = None,
         is_batch: bool = False,
         on_complete_callback: Optional[Callable[[], None]] = None,
     ) -> None:
         """Handle single segment line conversion request via SingleSegmentWorker."""
         self.studio_table.set_segment_translating(seg_id)
         target_language = self.language_combo.currentText()
-        ollama_model = self.ollama_combo.currentText().strip() or "llama3.2:3b"
-        provider_text = self.provider_combo.currentText()
-        if "Puter" in provider_text:
-            llm_provider = "puter"
+
+        if not provider or not model_name:
+            provider_text = self.provider_combo.currentText()
+            if "Puter" in provider_text:
+                llm_provider = "puter"
+            elif "Gemini" in provider_text or "Cloud" in provider_text:
+                llm_provider = "gemini"
+            else:
+                llm_provider = "ollama"
+            ollama_model = self.ollama_combo.currentText().strip() or "llama3.2:3b"
+        else:
+            llm_provider = provider
+            ollama_model = model_name
+
+        if llm_provider == "puter":
             api_key = self.api_key_edit.text().strip() or os.environ.get("PUTER_API_KEY")
-        elif "Gemini" in provider_text or "Cloud" in provider_text:
-            llm_provider = "gemini"
+        elif llm_provider == "gemini":
             api_key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
         else:
-            llm_provider = "ollama"
             api_key = None
 
         worker = SingleSegmentWorker(
@@ -830,7 +862,8 @@ class SubtitleGeneratorApp(QMainWindow):
         )
 
         def _on_finish(sid: int, text: str, status: str) -> None:
-            self.studio_table.update_segment_translation(sid, text, status)
+            model_label = f"{llm_provider.capitalize()}: {ollama_model}"
+            self.studio_table.update_segment_translation(sid, text, model_label)
             if is_batch and hasattr(self, "_convert_all_pending") and self._convert_all_pending > 0:
                 self._convert_all_pending -= 1
                 completed = getattr(self, "_convert_all_total", 0) - self._convert_all_pending
@@ -874,9 +907,10 @@ class SubtitleGeneratorApp(QMainWindow):
             while queue and getattr(self, "_active_worker_count", 0) < max_workers:
                 seg = queue.pop(0)
                 seg_id = int(seg["id"])
+                prov, mod = self.studio_table.get_row_selected_model(seg_id)
                 self._active_worker_count = getattr(self, "_active_worker_count", 0) + 1
                 self._on_single_convert_requested(
-                    seg_id, seg, is_batch=True, on_complete_callback=on_worker_complete
+                    seg_id, seg, provider=prov, model_name=mod, is_batch=True, on_complete_callback=on_worker_complete
                 )
 
         def on_worker_complete() -> None:
