@@ -268,6 +268,10 @@ def call_llm_provider(
         except urllib.error.HTTPError as err:
             err_body = err.read().decode("utf-8", errors="replace")
             logger.error("Failed executing Puter request (HTTP %s): %s", err.code, err_body)
+            if err.code == 401:
+                raise RuntimeError(
+                    "Puter API token expired or invalid (HTTP 401: Re-authentication required). Please log in to Puter to get a fresh token."
+                ) from err
             if err.code == 402:
                 raise RuntimeError(
                     "Puter API subscription required (Account is on 'user_free' tier). Please upgrade your Puter subscription or switch to Google Gemini / Ollama."

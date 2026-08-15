@@ -949,7 +949,20 @@ class SubtitleGeneratorApp(QMainWindow):
                 on_complete_callback()
 
         def _on_err(sid: int, err: str) -> None:
-            self.studio_table.update_segment_translation(sid, segment.get("text", ""), "Error")
+            if "401" in err or "reauth_required" in err or "Re-authentication required" in err:
+                self.studio_table.update_segment_translation(sid, segment.get("text", ""), "Error: Token Expired (401)")
+                os.environ.pop("PUTER_API_KEY", None)
+                os.environ.pop("PUTTER_API_KEY", None)
+                self.api_key_edit.clear()
+                dlg = PuterLoginDialog(self)
+                if dlg.exec() == QDialog.DialogCode.Accepted:
+                    fresh_key = dlg.get_token()
+                    if fresh_key:
+                        os.environ["PUTER_API_KEY"] = fresh_key
+                        self.api_key_edit.setText(fresh_key)
+            else:
+                self.studio_table.update_segment_translation(sid, segment.get("text", ""), "Error")
+
             if is_batch and hasattr(self, "_convert_all_pending") and self._convert_all_pending > 0:
                 self._convert_all_pending -= 1
                 completed = getattr(self, "_convert_all_total", 0) - self._convert_all_pending
