@@ -329,7 +329,7 @@ class SubtitleGeneratorApp(QMainWindow):
         self.enable_llm_check.setChecked(True)
         settings_layout.addWidget(self.enable_llm_check)
 
-        # Container Widget for LLM Provider Selection
+        # Container Widget for LLM Provider Selection (Off-layout; per-row selection used in Studio Table)
         self.provider_container = QWidget()
         provider_layout = QHBoxLayout(self.provider_container)
         provider_layout.setContentsMargins(0, 0, 0, 0)
@@ -344,9 +344,8 @@ class SubtitleGeneratorApp(QMainWindow):
         self.provider_combo.setCurrentText("Local (Ollama)")
         provider_layout.addWidget(provider_label)
         provider_layout.addWidget(self.provider_combo)
-        settings_layout.addWidget(self.provider_container)
 
-        # Container Widget for LLM Model Selection
+        # Container Widget for LLM Model Selection (Off-layout; per-row selection used in Studio Table)
         self.ollama_container = QWidget()
         ollama_layout = QHBoxLayout(self.ollama_container)
         ollama_layout.setContentsMargins(0, 0, 0, 0)
@@ -359,7 +358,6 @@ class SubtitleGeneratorApp(QMainWindow):
 
         ollama_layout.addWidget(self.model_label)
         ollama_layout.addWidget(self.ollama_combo)
-        settings_layout.addWidget(self.ollama_container)
 
         # Container Widget for API Key Field
         self.api_key_container = QWidget()
