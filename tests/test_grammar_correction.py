@@ -241,9 +241,8 @@ class TestGrammarCorrection(unittest.TestCase):
         self.assertEqual(result, '{"segments": [{"id": 1, "text": "Hello Puter!"}]}')
         mock_urlopen.assert_called_once()
         req = mock_urlopen.call_args[0][0]
-        self.assertEqual(req.full_url, "https://api.puter.com/v2/ai/chat")
+        self.assertEqual(req.full_url, "https://api.puter.com/puterai/openai/v1/chat/completions")
         self.assertEqual(req.get_header("Authorization"), "Bearer puter-test-key")
-        self.assertEqual(req.get_header("X-puter-api-key"), "puter-test-key")
 
     @patch("urllib.request.urlopen")
     def test_call_llm_provider_puter_success_message_content(self, mock_urlopen):
@@ -303,9 +302,10 @@ class TestGrammarCorrection(unittest.TestCase):
 
     def test_call_llm_provider_puter_missing_api_key(self):
         messages = [{"role": "user", "content": "hi"}]
-        env_backup = os.environ.get("PUTER_API_KEY")
-        if "PUTER_API_KEY" in os.environ:
-            del os.environ["PUTER_API_KEY"]
+        env_backup1 = os.environ.get("PUTER_API_KEY")
+        env_backup2 = os.environ.get("PUTTER_API_KEY")
+        os.environ.pop("PUTER_API_KEY", None)
+        os.environ.pop("PUTTER_API_KEY", None)
 
         try:
             with self.assertRaises(ValueError) as ctx:
@@ -317,8 +317,10 @@ class TestGrammarCorrection(unittest.TestCase):
                 )
             self.assertIn("Puter API key is missing", str(ctx.exception))
         finally:
-            if env_backup:
-                os.environ["PUTER_API_KEY"] = env_backup
+            if env_backup1:
+                os.environ["PUTER_API_KEY"] = env_backup1
+            if env_backup2:
+                os.environ["PUTTER_API_KEY"] = env_backup2
 
     @patch("urllib.request.urlopen")
     def test_call_llm_provider_puter_env_key(self, mock_urlopen):
@@ -341,7 +343,6 @@ class TestGrammarCorrection(unittest.TestCase):
             )
             req = mock_urlopen.call_args[0][0]
             self.assertEqual(req.get_header("Authorization"), "Bearer env-puter-key")
-            self.assertEqual(req.get_header("X-puter-api-key"), "env-puter-key")
         finally:
             if env_backup is not None:
                 os.environ["PUTER_API_KEY"] = env_backup

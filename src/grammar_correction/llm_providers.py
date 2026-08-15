@@ -236,10 +236,10 @@ def call_llm_provider(
             raise
 
     elif provider_clean == "puter":
-        key = api_key or os.environ.get("PUTER_API_KEY")
+        key = api_key or os.environ.get("PUTER_API_KEY") or os.environ.get("PUTTER_API_KEY")
         if not key:
             raise ValueError(
-                "Puter API key is missing. Provide 'api_key' or set PUTER_API_KEY environment variable."
+                "Puter API key is missing. Provide 'api_key' or set PUTER_API_KEY / PUTTER_API_KEY environment variable."
             )
 
         if not model_name or model_name in ("llama3.2:3b", "llama3.1"):
@@ -248,7 +248,6 @@ def call_llm_provider(
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {key}",
-            "X-Puter-API-Key": key,
         }
         payload = {
             "model": model_name,
@@ -258,7 +257,7 @@ def call_llm_provider(
 
         try:
             req = urllib.request.Request(
-                "https://api.puter.com/v2/ai/chat",
+                "https://api.puter.com/puterai/openai/v1/chat/completions",
                 data=json.dumps(payload).encode("utf-8"),
                 headers=headers,
                 method="POST",
@@ -269,6 +268,10 @@ def call_llm_provider(
         except urllib.error.HTTPError as err:
             err_body = err.read().decode("utf-8", errors="replace")
             logger.error("Failed executing Puter request (HTTP %s): %s", err.code, err_body)
+            if err.code == 402:
+                raise RuntimeError(
+                    "Puter API subscription required (Account is on 'user_free' tier). Please upgrade your Puter subscription or switch to Google Gemini / Ollama."
+                ) from err
             raise RuntimeError(f"Puter API HTTP request failed ({err.code}): {err_body}") from err
         except Exception as e:
             logger.error("Failed executing Puter request: %s", e)

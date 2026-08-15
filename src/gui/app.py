@@ -589,7 +589,8 @@ class SubtitleGeneratorApp(QMainWindow):
         from src.grammar_correction.llm_providers import get_available_gemini_models, get_available_puter_models
         api_key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
         gemini_models = get_available_gemini_models(api_key=api_key)
-        puter_models = get_available_puter_models(api_key=os.environ.get("PUTER_API_KEY"))
+        puter_key = os.environ.get("PUTER_API_KEY") or os.environ.get("PUTTER_API_KEY")
+        puter_models = get_available_puter_models(api_key=puter_key)
 
         # Build dynamic per-row model list for studio table
         model_options = []
