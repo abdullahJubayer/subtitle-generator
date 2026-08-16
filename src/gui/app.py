@@ -587,12 +587,20 @@ class SubtitleGeneratorApp(QMainWindow):
         if is_puter:
             self.ollama_combo.addItems(PUTER_MODELS)
             self.ollama_combo.setCurrentText("gpt-4o-mini")
+            key = self.api_key_edit.text().strip() or os.environ.get("PUTER_API_KEY") or os.environ.get("PUTTER_API_KEY")
+            if not key:
+                dlg = PuterLoginDialog(self)
+                if dlg.exec() == QDialog.DialogCode.Accepted:
+                    fresh_key = dlg.get_token()
+                    if fresh_key:
+                        os.environ["PUTER_API_KEY"] = fresh_key
+                        self.api_key_edit.setText(fresh_key)
         elif is_gemini:
             key = self.api_key_edit.text().strip() or os.environ.get("GEMINI_API_KEY")
             gemini_models = get_available_gemini_models(key) or []
             self.ollama_combo.addItems(gemini_models)
-            if "gemini-2.5-flash" in gemini_models:
-                self.ollama_combo.setCurrentText("gemini-2.5-flash")
+            if "gemini-2.0-flash" in gemini_models:
+                self.ollama_combo.setCurrentText("gemini-2.0-flash")
             elif gemini_models:
                 self.ollama_combo.setCurrentText(gemini_models[0])
         else:
