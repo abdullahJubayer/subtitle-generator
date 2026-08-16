@@ -182,6 +182,9 @@ def correct_single_segment(
     target_language: str = "English",
     provider: str = "ollama",
     api_key: str | None = None,
+    llm_callback: Optional[
+        Callable[[str, str, str, str, str, list[tuple[str, str]]], None]
+    ] = None,
 ) -> str:
     """Correct or translate a single subtitle segment line using LLM provider.
 
@@ -191,6 +194,7 @@ def correct_single_segment(
         target_language: Target language for translation/correction.
         provider: LLM provider name ("ollama", "gemini", or "puter").
         api_key: Optional API key.
+        llm_callback: Optional callback receiving interaction telemetry.
 
     Returns:
         The updated translated or corrected text string.
@@ -201,6 +205,7 @@ def correct_single_segment(
         target_language=target_language,
         provider=provider,
         api_key=api_key,
+        llm_callback=llm_callback,
     )
     if res and len(res) > 0:
         return str(res[0].get("text", segment.get("text", "")))

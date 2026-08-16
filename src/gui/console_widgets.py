@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QSplitter,
+    QTabWidget,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
@@ -284,10 +285,34 @@ class LlmConsoleWidget(QWidget):
         self.telemetry_label.setStyleSheet("font-weight: bold; color: #89b4fa; font-size: 12px;")
         layout.addWidget(self.telemetry_label)
 
-        # Splitter for JSON Payload/Response TextEdits and Diffs Table
-        splitter = QSplitter(Qt.Orientation.Vertical)
+        # Tabs for Request/Response Stream Log and Payload & Diffs View
+        self.tabs = QTabWidget()
 
-        # Top Section: Side-by-side Payload & Response
+        # Tab 1: Live LLM Request/Response Log Stream
+        log_tab = QWidget()
+        log_layout = QVBoxLayout(log_tab)
+        log_layout.setContentsMargins(4, 4, 4, 4)
+
+        toolbar_layout = QHBoxLayout()
+        self.clear_btn = QPushButton("Clear LLM Log")
+        self.clear_btn.clicked.connect(self.clear)
+        toolbar_layout.addStretch()
+        toolbar_layout.addWidget(self.clear_btn)
+        log_layout.addLayout(toolbar_layout)
+
+        self.log_area = QTextEdit()
+        self.log_area.setReadOnly(True)
+        self.log_area.setPlaceholderText("Live LLM request payloads and response logs will appear here...")
+        self.log_area.setStyleSheet("font-family: monospace; font-size: 11px;")
+        log_layout.addWidget(self.log_area, stretch=1)
+        self.tabs.addTab(log_tab, "📜 Request/Response Log")
+
+        # Tab 2: Side-by-side Payload/Response & Diffs
+        detail_tab = QWidget()
+        detail_layout = QVBoxLayout(detail_tab)
+        detail_layout.setContentsMargins(4, 4, 4, 4)
+
+        splitter = QSplitter(Qt.Orientation.Vertical)
         top_widget = QWidget()
         top_layout = QHBoxLayout(top_widget)
         top_layout.setContentsMargins(0, 0, 0, 0)
@@ -308,21 +333,21 @@ class LlmConsoleWidget(QWidget):
         top_layout.addWidget(response_group)
         splitter.addWidget(top_widget)
 
-        # Bottom Section: Side-by-side translation diff table
         diff_group = QGroupBox("Side-by-Side Translation Diffs")
         diff_layout = QVBoxLayout(diff_group)
         self.diff_table = QTableWidget()
         self.diff_table.setColumnCount(2)
-        self.diff_table.setHorizontalHeaderLabels(
-            ["Original Speech", "Adapted/Translated Subtitle"]
-        )
+        self.diff_table.setHorizontalHeaderLabels(["Original Speech", "Adapted/Translated Subtitle"])
         header = self.diff_table.horizontalHeader()
         if header:
             header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         diff_layout.addWidget(self.diff_table)
         splitter.addWidget(diff_group)
 
-        layout.addWidget(splitter)
+        detail_layout.addWidget(splitter)
+        self.tabs.addTab(detail_tab, "🔍 Payload & Diffs Detail")
+
+        layout.addWidget(self.tabs, stretch=1)
 
     def update_llm_interaction(
         self,
@@ -332,12 +357,25 @@ class LlmConsoleWidget(QWidget):
         model_name: str,
         batch_info: str,
     ) -> None:
-        """Update telemetry metadata label and raw payload/response text views."""
+        """Update telemetry metadata label, raw payload/response views, and log stream."""
+        import time
+
         self.payload_edit.setText(payload_json)
         self.response_edit.setText(response_json)
         self.telemetry_label.setText(
             f"Provider: {provider} | Model: {model_name} | {batch_info}"
         )
+
+        ts = time.strftime("%H:%M:%S")
+        log_entry = (
+            f"======================================================================\n"
+            f"[{ts}] 🌐 OUTGOING LLM REQUEST -> Provider: {provider} | Model: {model_name} | {batch_info}\n"
+            f"----------------------------------------------------------------------\n"
+            f"📤 SENT PAYLOAD (JSON):\n{payload_json}\n\n"
+            f"📥 RECEIVED LLM RESPONSE:\n{response_json}\n"
+            f"======================================================================\n\n"
+        )
+        self.log_area.append(log_entry)
 
     def add_diff_rows(self, items: list[tuple[str, str]]) -> None:
         """Append original vs adapted translation diff pairs to table widget."""
@@ -348,9 +386,10 @@ class LlmConsoleWidget(QWidget):
             self.diff_table.setItem(row, 1, QTableWidgetItem(str(adapted)))
 
     def clear(self) -> None:
-        """Reset widget state, clearing text edits and table rows."""
+        """Reset widget state, clearing text edits, log stream, and table rows."""
         self.payload_edit.clear()
         self.response_edit.clear()
+        self.log_area.clear()
         self.diff_table.setRowCount(0)
         self.telemetry_label.setText("Provider: N/A | Model: N/A | Batch: N/A | Latency: N/A")
 

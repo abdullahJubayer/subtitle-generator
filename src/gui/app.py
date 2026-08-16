@@ -974,6 +974,7 @@ class SubtitleGeneratorApp(QMainWindow):
 
         worker.segment_finished.connect(_on_finish)
         worker.segment_error.connect(_on_err)
+        worker.llm_data_emitted.connect(self.llm_console.on_llm_data_emitted)
         worker.start()
 
     def _on_convert_all_requested(self) -> None:

@@ -155,6 +155,7 @@ class SingleSegmentWorker(QThread):
 
     segment_finished = pyqtSignal(int, str, str)
     segment_error = pyqtSignal(int, str)
+    llm_data_emitted = pyqtSignal(str, str, str, str, str, list)
 
     def __init__(
         self,
@@ -174,6 +175,18 @@ class SingleSegmentWorker(QThread):
 
     def run(self) -> None:
         """Execute single-line translation in background thread."""
+        def _llm_cb(
+            payload_json: str,
+            response_json: str,
+            provider: str,
+            model_name: str,
+            batch_info: str,
+            diff_items: list,
+        ) -> None:
+            self.llm_data_emitted.emit(
+                payload_json, response_json, provider, model_name, batch_info, diff_items
+            )
+
         try:
             seg_id = int(self.segment.get("id", 0))
             from src.grammar_correction.corrector import correct_single_segment
@@ -184,6 +197,7 @@ class SingleSegmentWorker(QThread):
                 target_language=self.target_language,
                 provider=self.provider,
                 api_key=self.api_key,
+                llm_callback=_llm_cb,
             )
             self.segment_finished.emit(seg_id, translated, "Translated")
         except Exception as e:
