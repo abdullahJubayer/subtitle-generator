@@ -474,7 +474,6 @@ class SubtitleGeneratorApp(QMainWindow):
         self.srt_console = SrtConsoleWidget()
 
         self.console_tabs.addTab(self.whisper_console, "Whisper Log")
-        self.console_tabs.addTab(self.llm_console, "LLM Telemetry & Diffs")
         self.console_tabs.addTab(self.srt_console, "SRT Preview")
 
         self.log_console = self.whisper_console.log_area
@@ -512,12 +511,27 @@ class SubtitleGeneratorApp(QMainWindow):
         studio_header_layout.addWidget(self.build_srt_top_btn)
         studio_layout.addLayout(studio_header_layout)
 
-        # Prominent Studio Table occupying full screen area
+        # Splitter for Studio Table & LLM Request/Response Console
+        studio_splitter = QSplitter(Qt.Orientation.Vertical)
+
+        # Prominent Studio Table occupying top section of studio page
         self.studio_table = InteractiveSubtitleTableWidget()
         self.studio_table.convert_requested.connect(self._on_single_convert_requested)
         self.studio_table.convert_all_requested.connect(self._on_convert_all_requested)
         self.studio_table.segments_changed.connect(self._on_studio_segments_changed)
-        studio_layout.addWidget(self.studio_table, stretch=1)
+        studio_splitter.addWidget(self.studio_table)
+
+        # Dedicated LLM Request & Response Console Box (Gemini / Puter / Ollama)
+        llm_box = QGroupBox("🧠 LLM Conversion Request & Response Console (Gemini / Puter / Ollama)")
+        llm_box_layout = QVBoxLayout(llm_box)
+        llm_box_layout.setContentsMargins(6, 6, 6, 6)
+        llm_box_layout.addWidget(self.llm_console)
+        studio_splitter.addWidget(llm_box)
+
+        studio_splitter.setStretchFactor(0, 2)
+        studio_splitter.setStretchFactor(1, 1)
+
+        studio_layout.addWidget(studio_splitter, stretch=1)
 
         # Bottom Bar: Large Build & Load .SRT action button
         studio_bottom_layout = QHBoxLayout()
