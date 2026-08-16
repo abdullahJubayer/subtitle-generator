@@ -1054,10 +1054,9 @@ class SubtitleGeneratorApp(QMainWindow):
             except Exception as e:
                 logger.error("Failed to load SRT into SrtConsoleWidget: %s", e)
 
-        # Enable Video Player widget, load video & generated .srt, and start playback automatically!
+        # Enable Video Player widget and load video & generated .srt (stays paused until user enters Video Player screen)
         self.video_player.setEnabled(True)
         self.video_player.load_video(video_path, srt_path)
-        self.video_player.play()
 
         if getattr(self, "_llm_warning_notice", None):
             QMessageBox.warning(

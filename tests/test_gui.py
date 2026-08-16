@@ -319,7 +319,6 @@ class TestGUIComponents(unittest.TestCase):
             self.assertIn("Completed", self.app.stage_label.text())
             self.assertTrue(self.app.video_player.isEnabled())
             mock_load.assert_called_once_with(video_path, srt_path)
-            mock_play.assert_called_once()
             mock_info.assert_called_once()
 
     def test_pipeline_error_handler(self):
