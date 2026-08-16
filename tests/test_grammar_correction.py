@@ -65,11 +65,8 @@ class TestGrammarCorrection(unittest.TestCase):
             {"id": 1, "start": 0.0, "end": 2.0, "text": "hello world"},
         ]
 
-        result = correct_grammar(segments, model_name="llama3.1", provider="ollama")
-
-        # Must fallback gracefully to original segment text
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["text"], "hello world")
+        with self.assertRaises(Exception):
+            correct_grammar(segments, model_name="llama3.1", provider="ollama")
 
     @patch("src.grammar_correction.corrector.call_llm_provider")
     def test_correct_grammar_gemini_failure_fallback(self, mock_call_llm):
@@ -79,16 +76,13 @@ class TestGrammarCorrection(unittest.TestCase):
             {"id": 1, "start": 0.0, "end": 2.0, "text": "hello world"},
         ]
 
-        result = correct_grammar(
-            segments,
-            model_name="gemini-2.5-flash",
-            provider="gemini",
-            api_key="invalid_key",
-        )
-
-        # Must fallback gracefully to original segment text
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["text"], "hello world")
+        with self.assertRaises(Exception):
+            correct_grammar(
+                segments,
+                model_name="gemini-2.5-flash",
+                provider="gemini",
+                api_key="invalid_key",
+            )
 
     @patch("ollama.chat")
     def test_correct_grammar_batching(self, mock_chat):
@@ -417,15 +411,13 @@ class TestGrammarCorrection(unittest.TestCase):
             {"id": 1, "start": 0.0, "end": 2.0, "text": "hello puter world"},
         ]
 
-        result = correct_grammar(
-            segments,
-            model_name="gpt-4o-mini",
-            provider="puter",
-            api_key="invalid_key",
-        )
-
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["text"], "hello puter world")
+        with self.assertRaises(Exception):
+            correct_grammar(
+                segments,
+                model_name="gpt-4o-mini",
+                provider="puter",
+                api_key="invalid_key",
+            )
 
     def test_get_available_gemini_models(self):
         """Verify get_available_gemini_models returns fallback or list of non-deprecated models."""

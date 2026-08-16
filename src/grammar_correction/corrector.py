@@ -92,6 +92,7 @@ def correct_grammar(
 
         start_time = time.time()
         content = None
+        batch_error = None
         try:
             prompt_system = build_system_prompt(target_language)
             messages = [
@@ -137,10 +138,10 @@ def correct_grammar(
 
         except Exception as e:
             logger.warning(
-                f"Grammar correction failed for batch starting at index {i}: {e}. "
-                "Falling back to original segment text."
+                f"Grammar correction failed for batch starting at index {i}: {e}."
             )
             content = json.dumps({"error": str(e), "provider": provider, "model": model_name, "status": "failed"}, indent=2)
+            batch_error = e
 
         latency = time.time() - start_time
         if llm_callback:
@@ -166,6 +167,9 @@ def correct_grammar(
                 )
             except Exception as cb_err:
                 logger.warning("Error executing llm_callback: %s", cb_err)
+
+        if batch_error:
+            raise batch_error
 
     result: list[dict[str, float | int | str]] = []
     for seg in segments:
