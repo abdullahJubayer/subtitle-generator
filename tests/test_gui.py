@@ -490,15 +490,10 @@ class TestGUIComponents(unittest.TestCase):
 
     def test_app_console_tabs_integration(self):
         """Verify QTabWidget embedding WhisperConsoleWidget, LlmConsoleWidget, and SrtConsoleWidget in SubtitleGeneratorApp."""
-        self.assertTrue(hasattr(self.app, "console_tabs"))
         self.assertTrue(hasattr(self.app, "studio_table"))
         self.assertTrue(hasattr(self.app, "whisper_console"))
         self.assertTrue(hasattr(self.app, "llm_console"))
         self.assertTrue(hasattr(self.app, "srt_console"))
-
-        self.assertEqual(self.app.console_tabs.count(), 2)
-        self.assertEqual(self.app.console_tabs.tabText(0), "Whisper Log")
-        self.assertEqual(self.app.console_tabs.tabText(1), "SRT Preview")
 
         # Test log routing
         self.app._on_log_emitted("[Step 3/4] LLM grammar correction starting...")

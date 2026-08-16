@@ -465,27 +465,13 @@ class SubtitleGeneratorApp(QMainWindow):
         progress_layout.addWidget(self.progress_bar)
         setup_left_layout.addWidget(progress_group)
 
-        # Console Tab Widget for Setup Page (Whisper Log, LLM Output, SRT Preview)
-        self.console_tabs = QTabWidget()
-
         self.whisper_console = WhisperConsoleWidget()
         self.llm_console = LlmConsoleWidget()
         self.llm_console_widget = self.llm_console
         self.srt_console = SrtConsoleWidget()
-
-        self.console_tabs.addTab(self.whisper_console, "Whisper Log")
-        self.console_tabs.addTab(self.srt_console, "SRT Preview")
-
         self.log_console = self.whisper_console.log_area
 
-        # Right side setup logs & consoles
-        setup_right = QWidget()
-        setup_right_layout = QVBoxLayout(setup_right)
-        setup_right_layout.setContentsMargins(8, 8, 8, 8)
-        setup_right_layout.addWidget(self.console_tabs)
-
-        setup_layout.addWidget(setup_left, stretch=1)
-        setup_layout.addWidget(setup_right, stretch=1)
+        setup_layout.addWidget(setup_left)
         self.stack.addWidget(page_setup)
 
         # ----------------------------------------------------
