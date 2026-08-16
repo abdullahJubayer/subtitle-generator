@@ -182,31 +182,8 @@ def call_llm_provider(
                                 continue
                         raise err
 
-            # Perform call with requested model or auto-fallback if deprecated/404/429
-            try:
-                response = _try_generate(model_name, max_retries=2)
-            except Exception as model_err:
-                logger.warning(
-                    "Gemini API model '%s' failed (%s). Attempting auto-fallback across alternative models...",
-                    model_name,
-                    model_err,
-                )
-                fallback_models = [m for m in get_available_gemini_models(key) if m != model_name]
-                response = None
-                for fb_model in fallback_models:
-                    try:
-                        response = _try_generate(fb_model, max_retries=1)
-                        if response:
-                            logger.warning(
-                                "⚠️ Model '%s' hit rate limit/error. Automatically switched to working model '%s'.",
-                                model_name,
-                                fb_model,
-                            )
-                            break
-                    except Exception:
-                        continue
-                if not response:
-                    raise model_err
+            # Call requested model directly (raise error if model fails without auto-switching)
+            response = _try_generate(model_name, max_retries=2)
 
             res_text = getattr(response, "text", "") or ""
             if not res_text and hasattr(response, "candidates") and response.candidates:
