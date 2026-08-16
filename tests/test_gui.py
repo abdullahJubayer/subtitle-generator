@@ -598,13 +598,14 @@ class TestGUIComponents(unittest.TestCase):
         self.assertEqual(res[0]["text"], "Hello world.")
         mock_cb.assert_called_once()
         args = mock_cb.call_args[0]
-        payload_json, resp_json, provider, model_name, batch_info, diff_items = args
+        payload_json, resp_json, provider, model_name, batch_info, diff_items, prompt_sys = args
         self.assertIn("hello world", payload_json)
         self.assertEqual(resp_json, mock_response)
         self.assertEqual(provider, "ollama")
         self.assertEqual(model_name, "llama3.2:3b")
         self.assertIn("Batch", batch_info)
         self.assertEqual(diff_items, [("hello world", "Hello world.")])
+        self.assertTrue(len(prompt_sys) > 0)
 
     def test_worker_llm_data_emitted_signal(self):
         """Verify PipelineWorker emits llm_data_emitted signal when callback is invoked."""

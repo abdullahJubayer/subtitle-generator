@@ -162,6 +162,7 @@ def correct_grammar(
                     model_name,
                     batch_info,
                     diff_items,
+                    prompt_system,
                 )
             except Exception as cb_err:
                 logger.warning("Error executing llm_callback: %s", cb_err)

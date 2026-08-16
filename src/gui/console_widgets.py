@@ -356,6 +356,7 @@ class LlmConsoleWidget(QWidget):
         provider: str,
         model_name: str,
         batch_info: str,
+        system_prompt: str = "",
     ) -> None:
         """Update telemetry metadata label, raw payload/response views, and log stream."""
         import time
@@ -367,10 +368,14 @@ class LlmConsoleWidget(QWidget):
         )
 
         ts = time.strftime("%H:%M:%S")
+        sys_prompt_block = (
+            f"📜 SYSTEM PROMPT:\n{system_prompt}\n\n" if system_prompt else ""
+        )
         log_entry = (
             f"======================================================================\n"
             f"[{ts}] 🌐 OUTGOING LLM REQUEST -> Provider: {provider} | Model: {model_name} | {batch_info}\n"
             f"----------------------------------------------------------------------\n"
+            f"{sys_prompt_block}"
             f"📤 SENT PAYLOAD (JSON):\n{payload_json}\n\n"
             f"📥 RECEIVED LLM RESPONSE:\n{response_json}\n"
             f"======================================================================\n\n"
@@ -401,7 +406,10 @@ class LlmConsoleWidget(QWidget):
         model_name: str,
         batch_info: str,
         diff_items: list[tuple[str, str]],
+        system_prompt: str = "",
     ) -> None:
         """Slot receiver for worker thread llm_data_emitted signal."""
-        self.update_llm_interaction(payload_json, response_json, provider, model_name, batch_info)
+        self.update_llm_interaction(
+            payload_json, response_json, provider, model_name, batch_info, system_prompt
+        )
         self.add_diff_rows(diff_items)

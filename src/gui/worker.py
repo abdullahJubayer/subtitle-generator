@@ -61,7 +61,7 @@ class PipelineWorker(QThread):
     log_emitted = pyqtSignal(str)
     pipeline_finished = pyqtSignal(str)
     pipeline_error = pyqtSignal(str)
-    llm_data_emitted = pyqtSignal(str, str, str, str, str, list)
+    llm_data_emitted = pyqtSignal(str, str, str, str, str, list, str)
     segments_transcribed = pyqtSignal(list)
 
     def __init__(
@@ -109,9 +109,10 @@ class PipelineWorker(QThread):
             model_name: str,
             batch_info: str,
             diff_items: list,
+            prompt_system: str = "",
         ) -> None:
             self.llm_data_emitted.emit(
-                payload_json, response_json, provider, model_name, batch_info, diff_items
+                payload_json, response_json, provider, model_name, batch_info, diff_items, prompt_system
             )
 
         def _tx_cb(segs: list) -> None:
@@ -155,7 +156,7 @@ class SingleSegmentWorker(QThread):
 
     segment_finished = pyqtSignal(int, str, str)
     segment_error = pyqtSignal(int, str)
-    llm_data_emitted = pyqtSignal(str, str, str, str, str, list)
+    llm_data_emitted = pyqtSignal(str, str, str, str, str, list, str)
 
     def __init__(
         self,
@@ -182,9 +183,10 @@ class SingleSegmentWorker(QThread):
             model_name: str,
             batch_info: str,
             diff_items: list,
+            prompt_system: str = "",
         ) -> None:
             self.llm_data_emitted.emit(
-                payload_json, response_json, provider, model_name, batch_info, diff_items
+                payload_json, response_json, provider, model_name, batch_info, diff_items, prompt_system
             )
 
         try:
